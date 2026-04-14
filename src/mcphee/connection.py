@@ -126,18 +126,27 @@ class StdioMCPConnection(MCPConnection):
         self._argv = shlex.split(command)
 
     def _make_client(self) -> Client:
-        # fastmcp auto-detects stdio when given a list command
-        from fastmcp.client.transports import NodeStdioTransport, PythonStdioTransport
+        from fastmcp.client.transports import (
+            NodeStdioTransport,
+            PythonStdioTransport,
+            StdioTransport,
+        )
 
         cmd, *args = self._argv
-        # Auto-detect: node-based vs python-based vs raw executable
+
         if cmd in ("node", "npx", "npx.cmd", "bunx"):
+            # NodeStdioTransport(command, args=[...])
             return Client(NodeStdioTransport(cmd, args=args))
-        elif cmd in ("python", "python3", "uv"):
-            return Client(PythonStdioTransport(cmd, args=args))
+
+        elif cmd in ("python", "python3") and args:
+            # PythonStdioTransport(script_path, args=[extra_args], python_cmd=interpreter)
+            # argv pattern: python /path/to/server.py [extra...]
+            script_path, *script_args = args
+            return Client(PythonStdioTransport(script_path, args=script_args, python_cmd=cmd))
+
         else:
-            # Generic: fall back to PythonStdioTransport with the raw command
-            return Client(PythonStdioTransport(cmd, args=args))
+            # Generic: StdioTransport(command, args=[...]) handles uv, uvx, arbitrary executables
+            return Client(StdioTransport(cmd, args=args))
 
     @property
     def description(self) -> str:
