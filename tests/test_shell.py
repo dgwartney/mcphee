@@ -139,6 +139,16 @@ def test_load_caches_handles_exception(shell, mock_conn):
     assert shell.tool_names == []
 
 
+def test_load_caches_debug_warning_on_error(shell, mock_conn):
+    """In debug mode, cache load errors are surfaced as warnings."""
+    shell._debug = True
+    mock_conn.list_tools.side_effect = Exception("boom")
+    with patch("mcphee.shell.Display.warning") as mock_warn:
+        shell._load_caches()
+    mock_warn.assert_called_once()
+    assert "boom" in mock_warn.call_args[0][0]
+
+
 # ------------------------------------------------------------------
 # _dispatch — MCP commands
 # ------------------------------------------------------------------

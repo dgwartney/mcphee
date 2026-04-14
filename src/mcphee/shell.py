@@ -10,7 +10,8 @@ from typing import Any
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.completion import CompleteEvent, Completer, Completion
+from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
 
@@ -22,6 +23,7 @@ from mcphee.display import Display, console
 # ------------------------------------------------------------------
 
 def _history_path() -> Path:
+    """Return the XDG-compliant path for the mcphee command history file."""
     data_home = Path(os.environ.get("XDG_DATA_HOME", "~/.local/share")).expanduser()
     path = data_home / "mcphee" / "history"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -59,6 +61,15 @@ def parse_kv_args(tokens: list[str]) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------
+# Completion helper
+# ------------------------------------------------------------------
+
+def _at_second_token(n: int, ends_with_space: bool) -> bool:
+    """True when the cursor is positioned to complete the second token."""
+    return (n == 1 and ends_with_space) or (n == 2 and not ends_with_space)
+
+
+# ------------------------------------------------------------------
 # Tab completion
 # ------------------------------------------------------------------
 
@@ -68,7 +79,7 @@ class MCPCompleter(Completer):
     def __init__(self, shell: "MCPShell") -> None:
         self._shell = shell
 
-    def get_completions(self, document, complete_event):
+    def get_completions(self, document: Document, complete_event: CompleteEvent):
         text = document.text_before_cursor
         try:
             tokens = shlex.split(text)
@@ -91,7 +102,7 @@ class MCPCompleter(Completer):
 
         # --- list <subcommand> ---
         if cmd == "list":
-            if n == 1 and ends_with_space or (n == 2 and not ends_with_space):
+            if _at_second_token(n, ends_with_space):
                 word = tokens[1] if n == 2 else ""
                 for sub in ("tools", "resources", "prompts"):
                     if sub.startswith(word):
@@ -100,7 +111,7 @@ class MCPCompleter(Completer):
 
         # --- call <tool_name> [key=...] ---
         if cmd == "call":
-            if n == 1 and ends_with_space or (n == 2 and not ends_with_space):
+            if _at_second_token(n, ends_with_space):
                 word = tokens[1] if n == 2 else ""
                 for name in self._shell.tool_names:
                     if name.startswith(word):
@@ -120,7 +131,7 @@ class MCPCompleter(Completer):
 
         # --- read <uri> ---
         if cmd == "read":
-            if n == 1 and ends_with_space or (n == 2 and not ends_with_space):
+            if _at_second_token(n, ends_with_space):
                 word = tokens[1] if n == 2 else ""
                 for uri in self._shell.resource_uris:
                     if uri.startswith(word):
@@ -129,7 +140,7 @@ class MCPCompleter(Completer):
 
         # --- prompt <name> [key=...] ---
         if cmd == "prompt":
-            if n == 1 and ends_with_space or (n == 2 and not ends_with_space):
+            if _at_second_token(n, ends_with_space):
                 word = tokens[1] if n == 2 else ""
                 for name in self._shell.prompt_names:
                     if name.startswith(word):
@@ -151,7 +162,15 @@ class MCPCompleter(Completer):
 # ------------------------------------------------------------------
 
 class MCPShell:
-    """Interactive REPL that wraps a connected MCPConnection."""
+    """Interactive REPL wrapping a connected MCPConnection.
+
+    Uses prompt_toolkit for line editing with persistent history (XDG data dir),
+    context-aware tab completion, and fish-shell-style auto-suggestions. Defaults
+    to Vi key bindings; pass vi_mode=False for Emacs bindings.
+
+    Meta-commands (prefixed with #) control session state independently of MCP
+    operations.
+    """
 
     def __init__(
         self,
@@ -196,8 +215,9 @@ class MCPShell:
                 name = getattr(t, "name", str(t))
                 schema = getattr(t, "inputSchema", None) or getattr(t, "input_schema", None)
                 self.tool_schemas[name] = schema if isinstance(schema, dict) else {}
-        except Exception:
-            pass
+        except Exception as exc:
+            if self._debug:
+                Display.warning(f"[debug] cache load error (tools): {exc}")
 
         try:
             resources = self._conn.list_resources()
@@ -207,8 +227,9 @@ class MCPShell:
             ] + [
                 str(getattr(t, "uriTemplate", t)) for t in templates
             ]
-        except Exception:
-            pass
+        except Exception as exc:
+            if self._debug:
+                Display.warning(f"[debug] cache load error (resources): {exc}")
 
         try:
             prompts = self._conn.list_prompts()
@@ -218,8 +239,9 @@ class MCPShell:
                 name = getattr(p, "name", str(p))
                 args = getattr(p, "arguments", None) or []
                 self.prompt_args[name] = [getattr(a, "name", str(a)) for a in args]
-        except Exception:
-            pass
+        except Exception as exc:
+            if self._debug:
+                Display.warning(f"[debug] cache load error (prompts): {exc}")
 
     # ------------------------------------------------------------------
     # Entry point
@@ -262,7 +284,10 @@ class MCPShell:
     # ------------------------------------------------------------------
 
     def _dispatch(self, line: str) -> bool:
-        """Route input to a handler. Returns True to exit the loop."""
+        """Route a line of input to the appropriate command handler.
+
+        Returns True to signal the REPL loop to exit, False to continue.
+        """
         # Meta-commands
         if line.startswith("#"):
             self._handle_meta(line)
@@ -290,7 +315,7 @@ class MCPShell:
         elif cmd == "prompt":
             self._cmd_prompt(tokens[1:])
         elif cmd == "help":
-            self._cmd_help(tokens[1:])
+            self._cmd_help()
         else:
             Display.error(f"Unknown command: {cmd!r}. Type 'help' for available commands.")
 
@@ -301,6 +326,7 @@ class MCPShell:
     # ------------------------------------------------------------------
 
     def _cmd_list(self, args: list[str]) -> None:
+        """List available tools, resources, or prompts."""
         if not args:
             Display.error("Usage: list tools | list resources | list prompts")
             return
@@ -334,6 +360,7 @@ class MCPShell:
             Display.error(str(exc))
 
     def _cmd_call(self, args: list[str]) -> None:
+        """Invoke a tool: call <tool_name> [key=value ...]"""
         if not args:
             Display.error("Usage: call <tool_name> [key=value ...]")
             return
@@ -355,6 +382,7 @@ class MCPShell:
             Display.error(str(exc))
 
     def _cmd_read(self, args: list[str]) -> None:
+        """Read a resource by URI: read <resource_uri>"""
         if not args:
             Display.error("Usage: read <resource_uri>")
             return
@@ -371,6 +399,7 @@ class MCPShell:
             Display.error(str(exc))
 
     def _cmd_prompt(self, args: list[str]) -> None:
+        """Get a prompt: prompt <name> [key=value ...]"""
         if not args:
             Display.error("Usage: prompt <name> [key=value ...]")
             return
@@ -391,10 +420,12 @@ class MCPShell:
         except Exception as exc:
             Display.error(str(exc))
 
-    def _cmd_help(self, args: list[str]) -> None:
+    def _cmd_help(self) -> None:
+        """Show the REPL command reference table."""
         Display.help_table()
 
     def _cmd_exit(self) -> bool:
+        """Print a disconnecting message and signal the loop to exit."""
         Display.info("Disconnecting...")
         return True
 
@@ -403,6 +434,7 @@ class MCPShell:
     # ------------------------------------------------------------------
 
     def _handle_meta(self, line: str) -> None:
+        """Dispatch a # meta-command line to the appropriate handler."""
         parts = line.split(None, 1)
         cmd = parts[0].lower()
         rest = parts[1].strip() if len(parts) > 1 else ""
@@ -431,6 +463,7 @@ class MCPShell:
             Display.error(f"Unknown meta-command: {cmd!r}. Type '#help' for meta-commands.")
 
     def _meta_refresh(self) -> None:
+        """Re-fetch server capabilities and rebuild the completion caches."""
         Display.info("Refreshing...")
         self._load_caches()
         Display.success(
@@ -440,6 +473,7 @@ class MCPShell:
         )
 
     def _meta_history(self, rest: str) -> None:
+        """Print the last N commands from history (default 20)."""
         n = 20
         if rest:
             try:
@@ -459,19 +493,20 @@ class MCPShell:
             Display.warning("No history available.")
 
     def _meta_export(self, rest: str) -> None:
+        """Write the last result to a JSON file (default: mcphee_export.json)."""
         path = rest if rest else "mcphee_export.json"
         if self._last_result is None:
             Display.warning("No result to export yet.")
             return
         try:
-            import json as _json
-            out = _json.dumps(self._last_result, indent=2, default=str)
+            out = json.dumps(self._last_result, indent=2, default=str)
             Path(path).write_text(out)
             Display.success(f"Exported to: {path}")
         except Exception as exc:
             Display.error(f"Export failed: {exc}")
 
     def _meta_timeout(self, rest: str) -> None:
+        """Show or update the request timeout."""
         if not rest:
             Display.info(f"Current timeout: {self._conn.timeout}s")
             return

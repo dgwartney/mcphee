@@ -10,6 +10,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
+# Shared Rich console instance — imported by shell.py and cli.py
 console = Console()
 
 
@@ -36,6 +37,7 @@ class Display:
 
     @staticmethod
     def tools_table(tools: list) -> None:
+        """Print a Rich table of available tools with name, description, and parameters."""
         table = Table(title="Tools", show_header=True, header_style="bold cyan")
         table.add_column("Name", style="green", no_wrap=True)
         table.add_column("Description")
@@ -62,6 +64,11 @@ class Display:
 
     @staticmethod
     def resources_table(resources: list, templates: list | None = None) -> None:
+        """Print a Rich table of available resources and resource templates."""
+        if not resources and not templates:
+            console.print("[dim]No resources available.[/dim]")
+            return
+
         table = Table(title="Resources", show_header=True, header_style="bold cyan")
         table.add_column("URI", style="green")
         table.add_column("Description")
@@ -80,14 +87,15 @@ class Display:
                 mime = getattr(tmpl, "mimeType", "") or ""
                 table.add_row(f"[dim]{uri}[/dim]", f"[dim]{desc}[/dim]", f"[dim]{mime}[/dim]")
 
-        if not resources and not templates:
-            console.print("[dim]No resources available.[/dim]")
-            return
-
         console.print(table)
 
     @staticmethod
     def prompts_table(prompts: list) -> None:
+        """Print a Rich table of available prompts with name, description, and arguments."""
+        if not prompts:
+            console.print("[dim]No prompts available.[/dim]")
+            return
+
         table = Table(title="Prompts", show_header=True, header_style="bold cyan")
         table.add_column("Name", style="green", no_wrap=True)
         table.add_column("Description")
@@ -106,10 +114,6 @@ class Display:
             arg_str = ", ".join(arg_parts) if arg_parts else ""
             table.add_row(name, desc, arg_str)
 
-        if not prompts:
-            console.print("[dim]No prompts available.[/dim]")
-            return
-
         console.print(table)
 
     # ------------------------------------------------------------------
@@ -119,8 +123,7 @@ class Display:
     @staticmethod
     def tool_result(result: Any, json_mode: bool = False) -> None:
         """Render a tool call result."""
-        # Extract text content from fastmcp result objects
-        raw = _extract_result(result)
+        raw = Display._extract_result(result)
 
         if json_mode:
             print(_to_json_str(raw))
@@ -136,7 +139,7 @@ class Display:
 
     @staticmethod
     def resource_content(content: Any, uri: str = "", json_mode: bool = False) -> None:
-        """Render resource content."""
+        """Render resource content, handling text, JSON, and binary blocks."""
         items = content if isinstance(content, list) else [content]
 
         for item in items:
@@ -147,9 +150,9 @@ class Display:
             if text is not None:
                 if json_mode:
                     print(text)
-                    return
+                    continue
                 # Pretty-print JSON resources
-                if "json" in mime or _looks_like_json(text):
+                if "json" in mime or Display._looks_like_json(text):
                     try:
                         parsed = json.loads(text)
                         syntax = Syntax(
@@ -208,10 +211,12 @@ class Display:
 
     @staticmethod
     def error(msg: str) -> None:
+        """Print a red error panel."""
         console.print(Panel(f"[red]{msg}[/red]", title="Error", border_style="red"))
 
     @staticmethod
     def connected_banner(mode: str, target: str) -> None:
+        """Print the connection success banner showing transport mode and target."""
         console.print(
             Panel(
                 f"[green]Connected[/green] via [bold]{mode}[/bold]\n[dim]{target}[/dim]\n"
@@ -223,14 +228,17 @@ class Display:
 
     @staticmethod
     def info(msg: str) -> None:
+        """Print a cyan informational message."""
         console.print(f"[cyan]{msg}[/cyan]")
 
     @staticmethod
     def success(msg: str) -> None:
+        """Print a green success message."""
         console.print(f"[green]{msg}[/green]")
 
     @staticmethod
     def warning(msg: str) -> None:
+        """Print a yellow warning message."""
         console.print(f"[yellow]{msg}[/yellow]")
 
     @staticmethod
@@ -279,43 +287,44 @@ class Display:
 
         console.print(table)
 
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
 
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
+    @staticmethod
+    def _extract_result(result: Any) -> Any:
+        """Pull the meaningful value out of a fastmcp tool result."""
+        # fastmcp 3.x: result has .data
+        if hasattr(result, "data") and result.data is not None:
+            return result.data
 
-def _extract_result(result: Any) -> Any:
-    """Pull the meaningful value out of a fastmcp tool result."""
-    # fastmcp 3.x: result has .data
-    if hasattr(result, "data") and result.data is not None:
-        return result.data
+        # List of content blocks
+        if hasattr(result, "content"):
+            blocks = result.content
+            if len(blocks) == 1:
+                block = blocks[0]
+                text = getattr(block, "text", None)
+                if text is not None:
+                    try:
+                        return json.loads(text)
+                    except (json.JSONDecodeError, ValueError):
+                        return text
+            texts = [getattr(b, "text", str(b)) for b in blocks]
+            return texts
 
-    # List of content blocks
-    if hasattr(result, "content"):
-        blocks = result.content
-        if len(blocks) == 1:
-            block = blocks[0]
-            text = getattr(block, "text", None)
-            if text is not None:
-                try:
-                    return json.loads(text)
-                except (json.JSONDecodeError, ValueError):
-                    return text
-        texts = [getattr(b, "text", str(b)) for b in blocks]
-        return texts
+        # Iterable of content
+        if isinstance(result, list):
+            texts = []
+            for item in result:
+                text = getattr(item, "text", None)
+                if text is not None:
+                    texts.append(text)
+            return texts if len(texts) != 1 else texts[0]
 
-    # Iterable of content
-    if isinstance(result, list):
-        texts = []
-        for item in result:
-            text = getattr(item, "text", None)
-            if text is not None:
-                texts.append(text)
-        return texts if len(texts) != 1 else texts[0]
+        return result
 
-    return result
-
-
-def _looks_like_json(text: str) -> bool:
-    stripped = text.strip()
-    return stripped.startswith(("{", "["))
+    @staticmethod
+    def _looks_like_json(text: str) -> bool:
+        """Return True if text appears to be a JSON object or array (heuristic check)."""
+        stripped = text.strip()
+        return stripped.startswith(("{", "["))

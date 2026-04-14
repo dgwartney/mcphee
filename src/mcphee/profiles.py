@@ -13,18 +13,20 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 
-try:
-    import tomli_w as tomllib_w  # type: ignore[import-untyped]
-except ImportError:
-    tomllib_w = None  # type: ignore[assignment]
-
 
 def _config_home() -> Path:
+    """Return XDG_CONFIG_HOME or ~/.config as a resolved Path."""
     return Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
 
 
 def _profiles_path() -> Path:
+    """Return the canonical path to profiles.toml under the XDG config directory."""
     return _config_home() / "mcphee" / "profiles.toml"
+
+
+def _escape_toml_str(s: str) -> str:
+    """Escape backslashes and double quotes for use in a TOML basic string."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
 class ProfileManager:
@@ -38,6 +40,7 @@ class ProfileManager:
     # ------------------------------------------------------------------
 
     def _read_raw(self) -> dict[str, Any]:
+        """Load the raw TOML data from disk. Returns {'profiles': {}} if the file is absent."""
         if not self._path.exists():
             return {"profiles": {}}
         with open(self._path, "rb") as f:
@@ -45,8 +48,13 @@ class ProfileManager:
         return data if "profiles" in data else {"profiles": {}}
 
     def _write_raw(self, data: dict[str, Any]) -> None:
+        """Serialize profiles to TOML and write to disk.
+
+        Uses a simple manual serializer that supports string and non-string scalar values
+        and a single level of nested headers sub-tables. String values are escaped for
+        backslashes and double quotes. Does not support multi-line values or TOML arrays.
+        """
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        # Serialize manually as a simple TOML writer
         lines: list[str] = []
         for name, cfg in data.get("profiles", {}).items():
             lines.append(f"[profiles.{name}]")
@@ -54,7 +62,7 @@ class ProfileManager:
                 if key == "headers" and isinstance(val, dict):
                     continue  # handled below
                 if isinstance(val, str):
-                    lines.append(f'{key} = "{val}"')
+                    lines.append(f'{key} = "{_escape_toml_str(val)}"')
                 else:
                     lines.append(f"{key} = {val}")
             # Write headers sub-table
@@ -62,9 +70,9 @@ class ProfileManager:
             if headers:
                 lines.append(f"[profiles.{name}.headers]")
                 for hk, hv in headers.items():
-                    lines.append(f'{hk} = "{hv}"')
+                    lines.append(f'{hk} = "{_escape_toml_str(hv)}"')
             lines.append("")
-        self._path.write_text("\n".join(lines))
+        self._path.write_text("\n".join(lines) + "\n")
 
     # ------------------------------------------------------------------
     # Public API
@@ -114,10 +122,7 @@ class ProfileManager:
         data["profiles"] = profiles
         self._write_raw(data)
 
-    def list_profiles(self) -> dict[str, Any]:
-        """Alias for load_profiles; returns all profiles."""
-        return self.load_profiles()
-
     @property
     def path(self) -> Path:
+        """The resolved path to the profiles TOML file."""
         return self._path

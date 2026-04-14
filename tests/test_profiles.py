@@ -139,17 +139,17 @@ def test_delete_one_of_many(pm):
 
 
 # ------------------------------------------------------------------
-# list_profiles
+# load_profiles (was list_profiles — alias removed)
 # ------------------------------------------------------------------
 
-def test_list_profiles_empty(pm):
-    assert pm.list_profiles() == {}
+def test_load_profiles_via_main_method(pm):
+    assert pm.load_profiles() == {}
 
 
-def test_list_profiles_returns_all(pm):
+def test_load_profiles_returns_all(pm):
     pm.save_profile("x", "http", "http://x/mcp")
     pm.save_profile("y", "stdio", "cmd")
-    result = pm.list_profiles()
+    result = pm.load_profiles()
     assert "x" in result
     assert "y" in result
 

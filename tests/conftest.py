@@ -60,6 +60,11 @@ def mcp_server():
         """Greet someone by name."""
         return f"Hello {name}!"
 
+    @server.resource("test://item/{id}")
+    def get_item(id: str) -> str:
+        """A template resource for testing."""
+        return f"item:{id}"
+
     return server
 
 

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mcphee.display import Display, _extract_result, _looks_like_json, _to_json_str
+from mcphee.display import Display, _to_json_str
 
 
 # ------------------------------------------------------------------
@@ -199,6 +199,20 @@ def test_resource_content_fallback(capsys):
     Display.resource_content([item], uri="test://unknown")
 
 
+def test_resource_content_json_mode_all_blocks_printed(capsys):
+    """Both blocks must be printed in JSON mode (regression test for early-return bug)."""
+    item1 = MagicMock()
+    item1.text = "block one"
+    item1.mimeType = "text/plain"
+    item2 = MagicMock()
+    item2.text = "block two"
+    item2.mimeType = "text/plain"
+    Display.resource_content([item1, item2], uri="test://multi", json_mode=True)
+    out = capsys.readouterr().out
+    assert "block one" in out
+    assert "block two" in out
+
+
 # ------------------------------------------------------------------
 # prompt_result
 # ------------------------------------------------------------------
@@ -268,7 +282,7 @@ def test_meta_help_table(capsys):
 def test_extract_result_data():
     r = MagicMock()
     r.data = {"x": 1}
-    assert _extract_result(r) == {"x": 1}
+    assert Display._extract_result(r) == {"x": 1}
 
 
 def test_extract_result_content_single_text():
@@ -277,7 +291,7 @@ def test_extract_result_content_single_text():
     r = MagicMock()
     r.data = None
     r.content = [block]
-    result = _extract_result(r)
+    result = Display._extract_result(r)
     assert result == {"y": 2}
 
 
@@ -287,18 +301,18 @@ def test_extract_result_content_plain_text():
     r = MagicMock()
     r.data = None
     r.content = [block]
-    assert _extract_result(r) == "plain"
+    assert Display._extract_result(r) == "plain"
 
 
 def test_extract_result_list():
     block = MagicMock()
     block.text = "item"
-    assert _extract_result([block]) == "item"
+    assert Display._extract_result([block]) == "item"
 
 
 def test_extract_result_fallback():
     r = "raw string"
-    assert _extract_result(r) == "raw string"
+    assert Display._extract_result(r) == "raw string"
 
 
 # ------------------------------------------------------------------
@@ -306,15 +320,15 @@ def test_extract_result_fallback():
 # ------------------------------------------------------------------
 
 def test_looks_like_json_object():
-    assert _looks_like_json('{"a": 1}')
+    assert Display._looks_like_json('{"a": 1}')
 
 
 def test_looks_like_json_array():
-    assert _looks_like_json("[1, 2, 3]")
+    assert Display._looks_like_json("[1, 2, 3]")
 
 
 def test_looks_like_json_string():
-    assert not _looks_like_json("hello")
+    assert not Display._looks_like_json("hello")
 
 
 def test_to_json_str_dict():

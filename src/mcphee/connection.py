@@ -13,7 +13,13 @@ from fastmcp.client.transports import SSETransport, StreamableHttpTransport
 
 
 class MCPConnection(ABC):
-    """Abstract base class for MCP server connections."""
+    """Abstract base for MCP server connections.
+
+    Each connection manages a daemon thread running a dedicated asyncio event loop.
+    Async fastmcp calls are submitted to that loop via run_coroutine_threadsafe and
+    awaited synchronously from the caller's thread. Subclasses implement _make_client()
+    to return a transport-specific fastmcp Client.
+    """
 
     def __init__(self, timeout: float = 30.0) -> None:
         self.timeout = timeout
@@ -23,19 +29,28 @@ class MCPConnection(ABC):
         self._connected = False
 
     # ------------------------------------------------------------------
-    # Abstract hook — subclasses return a configured fastmcp Client
+    # Abstract hooks — subclasses return a configured fastmcp Client
     # ------------------------------------------------------------------
 
     @abstractmethod
     def _make_client(self) -> Client:
         """Return a fastmcp Client configured for this transport."""
 
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Human-readable description of this connection."""
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
     def connect(self) -> None:
-        """Start the background event loop, enter the client context."""
+        """Start the background asyncio event loop and enter the fastmcp client context.
+
+        Spawns a daemon thread that runs the event loop for the lifetime of this connection.
+        Raises an exception from the underlying transport if the server cannot be reached.
+        """
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._loop.run_forever, daemon=True)
         self._thread.start()
@@ -45,7 +60,11 @@ class MCPConnection(ABC):
         self._connected = True
 
     def disconnect(self) -> None:
-        """Exit the client context and stop the background loop."""
+        """Exit the fastmcp client context and stop the background event loop.
+
+        Waits up to 5 seconds for the event loop thread to terminate. Any error during
+        client teardown is suppressed to ensure the thread is always cleaned up.
+        """
         if self._client and self._connected:
             try:
                 self._run(self._client.__aexit__(None, None, None))
@@ -62,9 +81,20 @@ class MCPConnection(ABC):
     # ------------------------------------------------------------------
 
     def _run(self, coro: Any) -> Any:
-        """Submit a coroutine to the background loop and block for the result."""
+        """Submit a coroutine to the background loop and block until it completes.
+
+        Args:
+            coro: An awaitable to execute on the background event loop.
+
+        Returns:
+            The coroutine's return value.
+
+        Raises:
+            RuntimeError: If not connected.
+            concurrent.futures.TimeoutError: If the call exceeds self.timeout seconds.
+        """
         if self._loop is None:
-            raise RuntimeError("Not connected")
+            raise RuntimeError("Not connected — call connect() first")
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result(timeout=self.timeout)
 
@@ -73,31 +103,45 @@ class MCPConnection(ABC):
     # ------------------------------------------------------------------
 
     def list_tools(self) -> list:
-        assert self._client is not None
+        """Return the list of Tool objects exposed by the server."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.list_tools())
 
     def list_resources(self) -> list:
-        assert self._client is not None
+        """Return the list of Resource objects exposed by the server."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.list_resources())
 
     def list_resource_templates(self) -> list:
-        assert self._client is not None
+        """Return the list of ResourceTemplate objects exposed by the server."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.list_resource_templates())
 
     def list_prompts(self) -> list:
-        assert self._client is not None
+        """Return the list of Prompt objects exposed by the server."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.list_prompts())
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
-        assert self._client is not None
+        """Invoke a server tool by name and return its result."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.call_tool(name, arguments))
 
     def read_resource(self, uri: str) -> Any:
-        assert self._client is not None
+        """Read a server resource by URI and return its content."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.read_resource(uri))
 
     def get_prompt(self, name: str, arguments: dict[str, Any]) -> Any:
-        assert self._client is not None
+        """Fetch a server prompt by name and return the rendered messages."""
+        if self._client is None:
+            raise RuntimeError("Not connected — call connect() first")
         return self._run(self._client.get_prompt(name, arguments))
 
     # ------------------------------------------------------------------

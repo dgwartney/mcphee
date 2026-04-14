@@ -5,9 +5,10 @@ from __future__ import annotations
 import sys
 
 import click
+from rich.table import Table
 
 from mcphee.connection import ConnectionFactory
-from mcphee.display import Display
+from mcphee.display import Display, console
 from mcphee.profiles import ProfileManager
 from mcphee.shell import MCPShell
 
@@ -67,6 +68,9 @@ def connect(
       mcphee connect --http http://localhost:8080/mcp
       mcphee connect --profile myserver
     """
+    if timeout <= 0:
+        raise click.BadParameter("Timeout must be positive.", param_hint="--timeout")
+
     # Validate mutually exclusive options
     sources = [stdio_cmd, sse_url, http_url, profile]
     provided = [s for s in sources if s is not None]
@@ -95,7 +99,8 @@ def connect(
     elif sse_url is not None:
         mode, target = "sse", sse_url
     else:
-        mode, target = "http", http_url  # type: ignore[assignment]
+        assert http_url is not None
+        mode, target = "http", http_url
 
     conn = ConnectionFactory.create(mode, target, headers=headers or None, timeout=timeout)
 
@@ -131,14 +136,10 @@ def profile() -> None:
 def profile_list() -> None:
     """List all saved connection profiles."""
     pm = ProfileManager()
-    profiles = pm.list_profiles()
+    profiles = pm.load_profiles()
     if not profiles:
         click.echo("No profiles saved. Use 'mcphee profile add <name>' to create one.")
         return
-
-    from rich.table import Table
-
-    from mcphee.display import console
 
     table = Table(title="Saved Profiles", show_header=True, header_style="bold cyan")
     table.add_column("Name", style="green", no_wrap=True)

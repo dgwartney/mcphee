@@ -118,15 +118,15 @@ def test_list_prompts_returns_prompts(mcp_connection):
 def test_call_tool_echo(mcp_connection):
     result = mcp_connection.call_tool("echo", {"message": "hello"})
     # Result may be wrapped in content blocks or have .data
-    from mcphee.display import _extract_result
-    extracted = _extract_result(result)
+    from mcphee.display import Display
+    extracted = Display._extract_result(result)
     assert "hello" in str(extracted)
 
 
 def test_call_tool_add(mcp_connection):
     result = mcp_connection.call_tool("add", {"a": 3, "b": 4})
-    from mcphee.display import _extract_result
-    extracted = _extract_result(result)
+    from mcphee.display import Display
+    extracted = Display._extract_result(result)
     assert "7" in str(extracted)
 
 
