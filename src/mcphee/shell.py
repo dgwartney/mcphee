@@ -38,7 +38,8 @@ def parse_kv_args(tokens: list[str]) -> dict[str, Any]:
     """Parse ['key=value', ...] into a typed dict.
 
     Values are JSON-decoded when possible (true→bool, 3→int, etc.).
-    Quoted values with spaces are already split by shlex in the caller.
+    Quoted values (key="value" or key='value') are treated as literal strings,
+    bypassing JSON decoding — useful to pass "123" as a string instead of an int.
     """
     result: dict[str, Any] = {}
     for token in tokens:
@@ -47,11 +48,14 @@ def parse_kv_args(tokens: list[str]) -> dict[str, Any]:
         key, _, raw = token.partition("=")
         key = key.strip()
         raw = raw.strip()
-        # Strip surrounding quotes
-        if (raw.startswith('"') and raw.endswith('"')) or (
-            raw.startswith("'") and raw.endswith("'")
-        ):
-            raw = raw[1:-1]
+        # Detect surrounding quotes — treat as a literal string, skip JSON decode
+        if raw and raw[0] in ('"', "'"):
+            quote = raw[0]
+            if raw.endswith(quote) and len(raw) >= 2:
+                result[key] = raw[1:-1]
+                continue
+            else:
+                raise ValueError(f"Unclosed quote in value for {key!r}: {raw!r}")
         # Attempt JSON decode for booleans, numbers, arrays, objects
         try:
             result[key] = json.loads(raw)
@@ -294,7 +298,7 @@ class MCPShell:
             return False
 
         try:
-            tokens = shlex.split(line)
+            tokens = shlex.split(line, posix=False)
         except ValueError as exc:
             Display.error(f"Parse error: {exc}")
             return False
@@ -302,7 +306,7 @@ class MCPShell:
         if not tokens:
             return False
 
-        cmd = tokens[0].lower()
+        cmd = tokens[0].strip("\"'").lower()
 
         if cmd in ("exit", "quit"):
             return self._cmd_exit()
@@ -330,7 +334,7 @@ class MCPShell:
         if not args:
             Display.error("Usage: list tools | list resources | list prompts")
             return
-        sub = args[0].lower()
+        sub = args[0].strip("\"'").lower()
         try:
             if sub == "tools":
                 tools = self._conn.list_tools()
@@ -364,7 +368,7 @@ class MCPShell:
         if not args:
             Display.error("Usage: call <tool_name> [key=value ...]")
             return
-        tool_name = args[0]
+        tool_name = args[0].strip("\"'")
         try:
             kv_args = parse_kv_args(args[1:])
         except ValueError as exc:
@@ -386,7 +390,7 @@ class MCPShell:
         if not args:
             Display.error("Usage: read <resource_uri>")
             return
-        uri = args[0]
+        uri = args[0].strip("\"'")
 
         if self._debug:
             Display.info(f"[debug] read_resource({uri!r})")
@@ -403,7 +407,7 @@ class MCPShell:
         if not args:
             Display.error("Usage: prompt <name> [key=value ...]")
             return
-        prompt_name = args[0]
+        prompt_name = args[0].strip("\"'")
         try:
             kv_args = parse_kv_args(args[1:])
         except ValueError as exc:

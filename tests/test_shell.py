@@ -102,6 +102,28 @@ def test_parse_kv_quoted_string():
     assert parse_kv_args(['msg="hello world"']) == {"msg": "hello world"}
 
 
+def test_parse_kv_quoted_number_stays_string():
+    # Quotes override JSON decode — "123" should stay a string, not become int 123
+    assert parse_kv_args(['n="123"']) == {"n": "123"}
+
+
+def test_parse_kv_quoted_bool_stays_string():
+    assert parse_kv_args(['flag="true"']) == {"flag": "true"}
+
+
+def test_parse_kv_quoted_null_stays_string():
+    assert parse_kv_args(['v="null"']) == {"v": "null"}
+
+
+def test_parse_kv_single_quoted_string():
+    assert parse_kv_args(["msg='hello world'"]) == {"msg": "hello world"}
+
+
+def test_parse_kv_unclosed_quote_raises():
+    with pytest.raises(ValueError, match="Unclosed quote"):
+        parse_kv_args(['key="unclosed'])
+
+
 def test_parse_kv_multiple():
     result = parse_kv_args(["a=1", "b=two"])
     assert result == {"a": 1, "b": "two"}
@@ -193,6 +215,12 @@ def test_dispatch_call_missing_name(shell, capsys):
     # Should print usage error
 
 
+def test_dispatch_call_quoted_string_arg(shell, mock_conn):
+    # Quoted value should be passed as string, not coerced by JSON decode
+    shell._dispatch('call echo message="123"')
+    mock_conn.call_tool.assert_called_once_with("echo", {"message": "123"})
+
+
 def test_dispatch_call_bad_kv(shell, capsys):
     shell._dispatch("call echo badarg")
     # Should print error about key=value format
@@ -262,7 +290,7 @@ def test_dispatch_empty_line(shell):
 
 
 def test_dispatch_parse_error(shell, capsys):
-    # Unclosed quote causes shlex.split to raise ValueError
+    # Unclosed quote: parse_kv_args raises ValueError, caught inside _cmd_call
     result = shell._dispatch('call echo message="unclosed')
     assert result is False
 
