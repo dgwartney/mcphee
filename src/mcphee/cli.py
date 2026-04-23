@@ -2,15 +2,25 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 
 import click
+from rich.logging import RichHandler
 from rich.table import Table
 
 from mcphee.connection import ConnectionFactory
 from mcphee.display import Display, console
 from mcphee.profiles import ProfileManager
 from mcphee.shell import MCPShell
+
+# Configure the root logger once at import time.  Default to WARNING so the
+# REPL is quiet; users can raise the level via the #loglevel / #debug meta-commands.
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(message)s",
+    handlers=[RichHandler(console=console, show_path=False, rich_tracebacks=True)],
+)
 
 # ------------------------------------------------------------------
 # Root group

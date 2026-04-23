@@ -429,6 +429,86 @@ def test_meta_unknown(shell, capsys):
 
 
 # ------------------------------------------------------------------
+# #debug — log-level integration
+# ------------------------------------------------------------------
+
+def test_meta_debug_sets_log_level(shell):
+    import logging
+    shell._debug = False
+    shell._handle_meta("#debug")
+    assert shell._debug is True
+    assert logging.getLogger().level == logging.DEBUG
+    # Toggle back
+    shell._handle_meta("#debug")
+    assert shell._debug is False
+    assert logging.getLogger().level == logging.WARNING
+
+
+# ------------------------------------------------------------------
+# #loglevel
+# ------------------------------------------------------------------
+
+def test_meta_loglevel_show_current(shell, capsys):
+    import logging
+    logging.getLogger().setLevel(logging.WARNING)
+    with patch("mcphee.shell.Display.info") as mock_info:
+        shell._handle_meta("#loglevel")
+    mock_info.assert_called_once()
+    assert "WARNING" in mock_info.call_args[0][0]
+
+
+def test_meta_loglevel_set_debug(shell):
+    import logging
+    shell._handle_meta("#loglevel debug")
+    assert logging.getLogger().level == logging.DEBUG
+    assert shell._debug is True
+
+
+def test_meta_loglevel_set_info(shell):
+    import logging
+    shell._handle_meta("#loglevel info")
+    assert logging.getLogger().level == logging.INFO
+    assert shell._debug is False
+
+
+def test_meta_loglevel_set_warning(shell):
+    import logging
+    shell._handle_meta("#loglevel warning")
+    assert logging.getLogger().level == logging.WARNING
+
+
+def test_meta_loglevel_set_error(shell):
+    import logging
+    shell._handle_meta("#loglevel error")
+    assert logging.getLogger().level == logging.ERROR
+
+
+def test_meta_loglevel_set_critical(shell):
+    import logging
+    shell._handle_meta("#loglevel critical")
+    assert logging.getLogger().level == logging.CRITICAL
+
+
+def test_meta_loglevel_warn_alias(shell):
+    import logging
+    shell._handle_meta("#loglevel warn")
+    assert logging.getLogger().level == logging.WARNING
+
+
+def test_meta_loglevel_case_insensitive(shell):
+    import logging
+    shell._handle_meta("#loglevel DEBUG")
+    assert logging.getLogger().level == logging.DEBUG
+
+
+def test_meta_loglevel_invalid(shell):
+    with patch("mcphee.shell.Display.error") as mock_err:
+        shell._handle_meta("#loglevel verbose")
+    mock_err.assert_called_once()
+    assert "verbose" in mock_err.call_args[0][0]
+
+
+# ------------------------------------------------------------------
 # MCPCompleter
 # ------------------------------------------------------------------
 

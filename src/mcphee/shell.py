@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shlex
 from pathlib import Path
@@ -203,6 +204,9 @@ class MCPShell:
         # Debug mode
         self._debug = False
 
+        # Payload mode — show raw request/response on every call
+        self._payload_mode = False
+
         self._session: PromptSession | None = None
 
     # ------------------------------------------------------------------
@@ -378,9 +382,14 @@ class MCPShell:
         if self._debug:
             Display.info(f"[debug] call_tool({tool_name!r}, {kv_args})")
 
+        if self._payload_mode:
+            Display.payload_request("tools/call", {"name": tool_name, "arguments": kv_args})
+
         try:
             result = self._conn.call_tool(tool_name, kv_args)
             self._last_result = result
+            if self._payload_mode:
+                Display.payload_response(result)
             Display.tool_result(result, json_mode=self._json_mode)
         except Exception as exc:
             Display.error(str(exc))
@@ -395,9 +404,14 @@ class MCPShell:
         if self._debug:
             Display.info(f"[debug] read_resource({uri!r})")
 
+        if self._payload_mode:
+            Display.payload_request("resources/read", {"uri": uri})
+
         try:
             content = self._conn.read_resource(uri)
             self._last_result = content
+            if self._payload_mode:
+                Display.payload_response(content)
             Display.resource_content(content, uri=uri, json_mode=self._json_mode)
         except Exception as exc:
             Display.error(str(exc))
@@ -417,9 +431,14 @@ class MCPShell:
         if self._debug:
             Display.info(f"[debug] get_prompt({prompt_name!r}, {kv_args})")
 
+        if self._payload_mode:
+            Display.payload_request("prompts/get", {"name": prompt_name, "arguments": kv_args})
+
         try:
             result = self._conn.get_prompt(prompt_name, kv_args)
             self._last_result = result
+            if self._payload_mode:
+                Display.payload_response(result)
             Display.prompt_result(result, name=prompt_name, json_mode=self._json_mode)
         except Exception as exc:
             Display.error(str(exc))
@@ -457,10 +476,16 @@ class MCPShell:
             self._meta_export(rest)
         elif cmd == "#timeout":
             self._meta_timeout(rest)
+        elif cmd == "#payload":
+            self._meta_payload(rest)
         elif cmd == "#debug":
             self._debug = not self._debug
+            level = logging.DEBUG if self._debug else logging.WARNING
+            logging.getLogger().setLevel(level)
             state = "ON" if self._debug else "OFF"
-            Display.info(f"Debug mode: {state}")
+            Display.info(f"Debug mode: {state} (log level: {logging.getLevelName(level)})")
+        elif cmd == "#loglevel":
+            self._meta_loglevel(rest)
         elif cmd == "#help":
             Display.meta_help_table()
         else:
@@ -522,3 +547,42 @@ class MCPShell:
             Display.success(f"Timeout set to {secs}s")
         except ValueError:
             Display.error(f"#timeout expects a positive number, got: {rest!r}")
+
+    def _meta_payload(self, rest: str) -> None:
+        """Enable or disable payload display for every request/response."""
+        arg = rest.lower()
+        if arg == "on":
+            self._payload_mode = True
+            Display.info("Payload mode: ON — request and response payloads will be shown")
+        elif arg == "off":
+            self._payload_mode = False
+            Display.info("Payload mode: OFF")
+        else:
+            state = "ON" if self._payload_mode else "OFF"
+            Display.error(f"Usage: #payload on | #payload off  (currently {state})")
+
+    def _meta_loglevel(self, rest: str) -> None:
+        """Show or set the Python root logging level."""
+        _LEVELS: dict[str, int] = {
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "warn": logging.WARNING,
+            "error": logging.ERROR,
+            "critical": logging.CRITICAL,
+        }
+        root = logging.getLogger()
+        if not rest:
+            current = logging.getLevelName(root.level)
+            Display.info(f"Log level: {current}")
+            return
+        key = rest.lower()
+        if key not in _LEVELS:
+            valid = ", ".join(k for k in _LEVELS if k != "warn")
+            Display.error(f"Unknown level: {rest!r}. Valid levels: {valid}")
+            return
+        level = _LEVELS[key]
+        root.setLevel(level)
+        # Keep shell debug flag in sync when switching to/from DEBUG
+        self._debug = level == logging.DEBUG
+        Display.success(f"Log level set to {logging.getLevelName(level)}")

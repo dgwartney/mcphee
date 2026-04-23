@@ -278,14 +278,72 @@ class Display:
             ("#json", "#json", "Toggle JSON vs Rich pretty output"),
             ("#history", "#history [N]", "Show last N commands (default 20)"),
             ("#export", "#export [path]", "Export last result to a JSON file"),
-            ("#timeout", "#timeout <seconds>", "Set request timeout"),
-            ("#debug", "#debug", "Toggle verbose debug output"),
+            ("#timeout", "#timeout [seconds]", "Show or set request timeout"),
+            ("#payload", "#payload on | off", "Show raw request and response payloads for every call"),
+            ("#debug", "#debug", "Toggle debug mode (also sets log level DEBUG/WARNING)"),
+            ("#loglevel", "#loglevel [LEVEL]", "Show or set log level (debug/info/warning/error/critical)"),
             ("#help", "#help", "Show this meta-command help"),
         ]
         for cmd, syntax, desc in rows:
             table.add_row(cmd, syntax, desc)
 
         console.print(table)
+
+    # ------------------------------------------------------------------
+    # Payload display (#payload mode)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def payload_request(method: str, params: dict) -> None:
+        """Print the outgoing MCP request payload."""
+        body = {"jsonrpc": "2.0", "method": method, "params": params}
+        syntax = Syntax(json.dumps(body, indent=2, default=str), "json", theme="monokai", word_wrap=True)
+        console.print(Panel(syntax, title="[bold yellow]Request Payload[/bold yellow]", border_style="yellow"))
+
+    @staticmethod
+    def payload_response(result: Any) -> None:
+        """Print the raw MCP response payload before extraction/formatting."""
+        # Build a representative dict of what came back
+        payload: dict = {}
+
+        if hasattr(result, "data") and result.data is not None:
+            payload["data"] = result.data
+
+        if hasattr(result, "content"):
+            blocks = []
+            for block in result.content:
+                b: dict = {}
+                if hasattr(block, "type"):
+                    b["type"] = block.type
+                text = getattr(block, "text", None)
+                if text is not None:
+                    try:
+                        b["text"] = json.loads(text)
+                    except (json.JSONDecodeError, ValueError):
+                        b["text"] = text
+                blob = getattr(block, "blob", None)
+                if blob is not None:
+                    b["blob"] = f"<binary {len(blob)} bytes>"
+                blocks.append(b)
+            payload["content"] = blocks
+
+        if hasattr(result, "isError"):
+            payload["isError"] = result.isError
+
+        if hasattr(result, "messages"):
+            payload["messages"] = [
+                {
+                    "role": getattr(m, "role", "?"),
+                    "content": getattr(getattr(m, "content", None), "text", str(getattr(m, "content", m))),
+                }
+                for m in (result.messages or [])
+            ]
+
+        if not payload:
+            payload = {"raw": str(result)}
+
+        syntax = Syntax(json.dumps(payload, indent=2, default=str), "json", theme="monokai", word_wrap=True)
+        console.print(Panel(syntax, title="[bold blue]Response Payload[/bold blue]", border_style="blue"))
 
     # ------------------------------------------------------------------
     # Private helpers
