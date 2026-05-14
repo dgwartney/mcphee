@@ -221,6 +221,16 @@ def test_dispatch_call_quoted_string_arg(shell, mock_conn):
     mock_conn.call_tool.assert_called_once_with("echo", {"message": "123"})
 
 
+def test_dispatch_call_double_quoted_multiword(shell, mock_conn):
+    shell._dispatch('call echo message="Jeff Beck"')
+    mock_conn.call_tool.assert_called_once_with("echo", {"message": "Jeff Beck"})
+
+
+def test_dispatch_call_single_quoted_multiword(shell, mock_conn):
+    shell._dispatch("call echo message='Jeff Beck'")
+    mock_conn.call_tool.assert_called_once_with("echo", {"message": "Jeff Beck"})
+
+
 def test_dispatch_call_bad_kv(shell, capsys):
     shell._dispatch("call echo badarg")
     # Should print error about key=value format

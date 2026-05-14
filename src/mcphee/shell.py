@@ -32,6 +32,43 @@ def _history_path() -> Path:
 
 
 # ------------------------------------------------------------------
+# Command-line tokenizer
+# ------------------------------------------------------------------
+
+def _split_cmd_line(line: str) -> list[str]:
+    """Tokenize a mcphee command line on whitespace, but keep key="multi word"
+    as a single token by treating a quote encountered mid-token as a grouping
+    delimiter.  The surrounding quote characters are preserved in the token so
+    that parse_kv_args can still distinguish quoted strings from bare values.
+    """
+    tokens: list[str] = []
+    i = 0
+    n = len(line)
+    while i < n:
+        while i < n and line[i].isspace():
+            i += 1
+        if i >= n:
+            break
+        buf: list[str] = []
+        while i < n and not line[i].isspace():
+            if line[i] in ('"', "'"):
+                quote = line[i]
+                buf.append(line[i])
+                i += 1
+                while i < n and line[i] != quote:
+                    buf.append(line[i])
+                    i += 1
+                if i < n:
+                    buf.append(line[i])
+                    i += 1
+            else:
+                buf.append(line[i])
+                i += 1
+        tokens.append("".join(buf))
+    return tokens
+
+
+# ------------------------------------------------------------------
 # Argument parser
 # ------------------------------------------------------------------
 
@@ -44,6 +81,7 @@ def parse_kv_args(tokens: list[str]) -> dict[str, Any]:
     """
     result: dict[str, Any] = {}
     for token in tokens:
+        token = token.rstrip(",")  # allow comma as separator between key=value pairs
         if "=" not in token:
             raise ValueError(f"Expected key=value, got: {token!r}")
         key, _, raw = token.partition("=")
@@ -302,7 +340,7 @@ class MCPShell:
             return False
 
         try:
-            tokens = shlex.split(line, posix=False)
+            tokens = _split_cmd_line(line)
         except ValueError as exc:
             Display.error(f"Parse error: {exc}")
             return False
