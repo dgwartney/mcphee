@@ -25,17 +25,32 @@ and prompts in a rich interactive REPL.
 
 ## Installation
 
+### Recommended: uv tool (isolated, no venv management)
+
 ```bash
 # From PyPI
-pip install mcphee
 uv tool install mcphee
 
 # From GitHub (latest main)
 uv tool install git+https://github.com/dgwartney/mcphee
 
-# Specific tag
-uv tool install git+https://github.com/dgwartney/mcphee@v0.1.0
-pip install git+https://github.com/dgwartney/mcphee@v0.1.0
+# Specific tag or commit
+uv tool install "git+https://github.com/dgwartney/mcphee@v0.1.0"
+
+# From a local clone
+uv tool install .
+```
+
+After installation the `mcphee` command is available globally without activating a virtual environment. Upgrade with:
+
+```bash
+uv tool upgrade mcphee
+```
+
+### pip
+
+```bash
+pip install mcphee
 ```
 
 ---
