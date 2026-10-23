@@ -178,9 +178,12 @@ class StdioMCPConnection(MCPConnection):
 
         cmd, *args = self._argv
 
-        if cmd in ("node", "npx", "npx.cmd", "bunx"):
-            # NodeStdioTransport(command, args=[...])
-            return Client(NodeStdioTransport(cmd, args=args))
+        if cmd == "node" and args:
+            # NodeStdioTransport(script_path, args=[extra_args], node_cmd=interpreter)
+            # argv pattern: node /path/to/server.js [extra...]
+            # (npx/bunx take a package name, not a script, so they fall through to generic)
+            script_path, *script_args = args
+            return Client(NodeStdioTransport(script_path, args=script_args, node_cmd=cmd))
 
         elif cmd in ("python", "python3") and args:
             # PythonStdioTransport(script_path, args=[extra_args], python_cmd=interpreter)
