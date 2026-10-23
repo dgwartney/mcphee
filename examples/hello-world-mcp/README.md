@@ -9,9 +9,9 @@ Use it to learn mcphee and to test any MCP client.
 
 ## Prerequisites
 
-- [uv](https://docs.astral.sh/uv/) installed
-- Python 3.11+
-- [mcphee](https://github.com/dgwartney/mcphee) installed (`uv tool install git+https://github.com/dgwartney/mcphee`)
+- [uv](https://docs.astral.sh/uv/) installed — see [Install uv](../../README.md#prerequisite-install-uv)
+- Python 3.11+ (uv downloads it automatically if needed)
+- mcphee installed: `uv tool install mcphee`
 
 ---
 

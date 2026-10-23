@@ -23,8 +23,8 @@ By the end you will know how to:
 
 | Requirement | Install |
 |---|---|
-| `uv` | `curl -Ls https://astral.sh/uv/install.sh \| sh` |
-| `mcphee` | `uv tool install git+https://github.com/dgwartney/mcphee` |
+| `uv` | macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh` — Windows and other options: see [README → Installation](README.md#prerequisite-install-uv) |
+| `mcphee` | `uv tool install mcphee` |
 | mcphee repo | `git clone https://github.com/dgwartney/mcphee` |
 
 The `hello-world-mcp` server lives at `examples/hello-world-mcp/server.py` inside the repo.

@@ -25,6 +25,40 @@ and prompts in a rich interactive REPL.
 
 ## Installation
 
+### Prerequisite: install uv
+
+mcphee is installed with [uv](https://docs.astral.sh/uv/), Astral's Python package and tool manager. uv also
+downloads a suitable Python (3.11+) automatically if you don't have one, so you don't need to install Python first.
+
+macOS / Linux:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Or with a package manager: `brew install uv` (macOS) or `winget install --id=astral-sh.uv -e` (Windows).
+
+Then open a new terminal and check it works:
+
+```bash
+uv --version
+```
+
+`uv tool install` puts commands such as `mcphee` in `~/.local/bin` (Windows: `%USERPROFILE%\.local\bin`).
+If `mcphee` is "command not found" after installing, add that directory to your `PATH` with:
+
+```bash
+uv tool update-shell
+```
+
+and open a new terminal.
+
 ### Recommended: uv tool (isolated, no venv management)
 
 ```bash
