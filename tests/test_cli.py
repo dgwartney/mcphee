@@ -34,9 +34,11 @@ def test_help(runner):
 
 
 def test_version(runner):
+    import mcphee as pkg
+
     result = runner.invoke(mcphee, ["--version"])
     assert result.exit_code == 0
-    assert "0.1.0" in result.output
+    assert pkg.__version__ in result.output
 
 
 # ------------------------------------------------------------------
