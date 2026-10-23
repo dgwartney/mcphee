@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.3.2",
-    "fastmcp>=3.2.4",
+    "fastmcp>=3.2.4,<4",
     "prompt-toolkit>=3.0.52",
     "rich>=15.0.0",
 ]

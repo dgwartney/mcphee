@@ -197,10 +197,28 @@ The REPL uses **Vi mode** by default. Use `--emacs` to switch to Emacs mode.
 
 ## Publishing to PyPI
 
-```bash
-uv build          # produces dist/mcphee-*.whl and .tar.gz
-uv publish        # requires PYPI_TOKEN env var or --token flag
-```
+Releases are published by the `Publish` GitHub Actions workflow (`.github/workflows/publish.yml`) using
+PyPI Trusted Publishing (OIDC), so no API tokens are stored anywhere.
+
+One-time setup on <https://pypi.org> (and <https://test.pypi.org> for dry runs), under
+**Account → Publishing → Add a pending publisher**:
+
+| Field | Value |
+|---|---|
+| PyPI Project Name | `mcphee` |
+| Owner | `dgwartney` |
+| Repository name | `mcphee` |
+| Workflow name | `publish.yml` |
+| Environment name | `pypi` (use `testpypi` on TestPyPI) |
+
+To release:
+
+1. Bump `version` in `pyproject.toml` (PyPI never accepts the same version twice).
+2. Dry run: **Actions → Publish → Run workflow → target `testpypi`**, then install from TestPyPI:
+   `uv tool install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ mcphee`
+3. Publish: create a GitHub Release tagged `vX.Y.Z` — the workflow uploads to PyPI.
+
+To build locally without publishing: `uv build` (writes `dist/mcphee-*.whl` and `.tar.gz`).
 
 ---
 
