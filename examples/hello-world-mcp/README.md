@@ -171,10 +171,19 @@ Once connected, you'll see the REPL prompt `> `. Here's a guided walkthrough:
 # Set request timeout
 > #timeout 60
 
-# Enable debug output (shows raw requests/responses)
+# Show raw request/response payloads
+> #payload on
+> call add a=1 b=2
+> #payload off
+
+# Enable debug output (echoes arguments, DEBUG logging)
 > #debug
 > call add a=1 b=2
 > #debug                    # toggle off
+
+# Show or set the log level
+> #loglevel
+> #loglevel info
 
 # Show command history
 > #history 10

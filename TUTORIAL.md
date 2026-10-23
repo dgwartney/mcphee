@@ -669,22 +669,79 @@ JSON mode: OFF
 
 ---
 
-### Debug mode — see raw requests and responses
+### Payload mode — see raw requests and responses
+
+```
+> #payload on
+Payload mode: ON — request and response payloads will be shown
+
+> call add a=3 b=4
+╭──────────────── Request Payload ─────────────────╮
+│ {                                                │
+│   "jsonrpc": "2.0",                              │
+│   "method": "tools/call",                        │
+│   "params": {                                    │
+│     "name": "add",                               │
+│     "arguments": {                               │
+│       "a": 3,                                    │
+│       "b": 4                                     │
+│     }                                            │
+│   }                                              │
+│ }                                                │
+╰──────────────────────────────────────────────────╯
+╭──────────────── Response Payload ────────────────╮
+│ {                                                │
+│   "data": 7,                                     │
+│   "content": [                                   │
+│     {                                            │
+│       "type": "text",                            │
+│       "text": 7                                  │
+│     }                                            │
+│   ]                                              │
+│ }                                                │
+╰──────────────────────────────────────────────────╯
+╭───────────────────── Result ─────────────────────╮
+│ 7                                                │
+╰──────────────────────────────────────────────────╯
+
+> #payload off
+Payload mode: OFF
+```
+
+> Shows the JSON-RPC request sent for every `call`, `read`, and `prompt`, and the raw
+> response before mcphee formats it. Helpful when a tool call produces unexpected output.
+
+---
+
+### Debug mode and log level
 
 ```
 > #debug
-Debug mode: ON
+Debug mode: ON (log level: DEBUG)
 
 > call add a=3 b=4
 [debug] call_tool('add', {'a': 3, 'b': 4})
 ... result ...
 
 > #debug
-Debug mode: OFF
+Debug mode: OFF (log level: WARNING)
 ```
 
-> Shows the exact arguments being sent and the raw result returned. Helpful when a tool
-> call produces unexpected output.
+> Echoes the arguments mcphee is about to send and turns on DEBUG logging, which includes
+> the underlying MCP client's protocol messages.
+
+For finer control, set the log level directly:
+
+```
+> #loglevel
+Log level: WARNING
+
+> #loglevel info
+Log level set to INFO
+```
+
+Valid levels are `debug`, `info`, `warning`, `error` and `critical`. Choosing `debug`
+also turns debug mode on; any other level turns it off.
 
 ---
 
@@ -848,9 +905,11 @@ Ctrl+C during a call interrupts the wait and returns to the `> ` prompt without 
 | Command | Effect |
 |---|---|
 | `#json` | Toggle Rich panels ↔ raw JSON |
-| `#debug` | Toggle verbose request/response logging |
+| `#payload on\|off` | Show raw request/response payloads |
+| `#debug` | Toggle debug mode (DEBUG logging) |
+| `#loglevel [LEVEL]` | Show or set the log level |
 | `#export [path]` | Save last result to a JSON file |
-| `#timeout <s>` | Set request timeout in seconds |
+| `#timeout [s]` | Show or set request timeout in seconds |
 | `#refresh` | Re-fetch server capabilities, rebuild completions |
 | `#history [N]` | Show last N commands |
 | `#clear` | Clear the terminal |

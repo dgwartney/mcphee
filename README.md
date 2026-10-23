@@ -19,7 +19,7 @@ and prompts in a rich interactive REPL.
 - **Persistent history** — across sessions, XDG-compliant location
 - **Named profiles** — save connection configs in `~/.config/mcphee/profiles.toml`
 - **Rich output** — syntax-highlighted JSON, tables, and panels; toggle to raw JSON with `#json`
-- **Meta-commands** — `#refresh`, `#export`, `#timeout`, `#debug`, and more
+- **Meta-commands** — `#refresh`, `#export`, `#timeout`, `#payload`, `#debug`, `#loglevel`, and more
 
 ---
 
@@ -162,8 +162,10 @@ Meta-commands begin with `#` and control the REPL session:
 | `#json` | `#json` | Toggle JSON vs Rich pretty output |
 | `#history` | `#history [N]` | Show last N commands (default 20) |
 | `#export` | `#export [path]` | Export last result to a JSON file |
-| `#timeout` | `#timeout <seconds>` | Set request timeout |
-| `#debug` | `#debug` | Toggle verbose debug output |
+| `#timeout` | `#timeout [seconds]` | Show or set request timeout |
+| `#payload` | `#payload on \| off` | Show raw request and response payloads for every call |
+| `#debug` | `#debug` | Toggle debug mode (also sets log level DEBUG/WARNING) |
+| `#loglevel` | `#loglevel [LEVEL]` | Show or set log level (debug/info/warning/error/critical) |
 | `#help` | `#help` | Show meta-command reference |
 
 ---
