@@ -23,12 +23,15 @@ By the end you will know how to:
 
 | Requirement | Install |
 |---|---|
-| `uv` | `curl -Ls https://astral.sh/uv/install.sh \| sh` |
-| `mcphee` | `uv tool install git+https://github.com/dgwartney/mcphee` |
-| mcphee repo | `git clone https://github.com/dgwartney/mcphee` |
+| `uv` | macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh` — Windows and other options: see [README → Installation](README.md#prerequisite-install-uv) |
+| `mcphee` | `uv tool install mcphee` |
+| mcphee repo | `git clone https://github.com/dgwartney/mcphee ~/git/mcphee` |
 
-The `hello-world-mcp` server lives at `examples/hello-world-mcp/server.py` inside the repo.
-Its Python dependencies are managed by `uv` and install automatically the first time you run it.
+The `hello-world-mcp` server is not part of the installed `mcphee` package; it lives in the repo
+at `examples/hello-world-mcp/server.py`. The commands below assume you cloned to `~/git/mcphee`.
+
+The server is always started with `uv run`, which installs its dependencies (and a suitable
+Python, if needed) the first time. Expect the first connection to take a few seconds.
 
 ---
 
@@ -39,10 +42,11 @@ Its Python dependencies are managed by `uv` and install automatically the first 
 mcphee spawns the server as a subprocess. No second terminal is needed.
 
 ```bash
-mcphee connect --stdio "python /path/to/mcphee/examples/hello-world-mcp/server.py"
+mcphee connect --stdio "uv run --directory $HOME/git/mcphee/examples/hello-world-mcp server.py"
 ```
 
-Replace `/path/to/mcphee` with the actual clone location, for example `~/git/mcphee`.
+If you cloned somewhere else, change the path. Don't use `python server.py` here: that runs
+whichever Python is on your `PATH`, which usually doesn't have `fastmcp` installed.
 
 ### Option B — saved profile
 
@@ -56,16 +60,19 @@ To create the profile if it is missing:
 
 ```bash
 mcphee profile add hello-world
-# Transport mode: stdio
-# Shell command: python /path/to/mcphee/examples/hello-world-mcp/server.py
+# Transport mode (stdio, sse, http) [http]: stdio
+# Shell command: uv run --directory /home/you/git/mcphee/examples/hello-world-mcp server.py
+# Add a header? [y/N]: N
 ```
+
+Type the full path: `~` and `$HOME` are not expanded inside a saved profile.
 
 ### Option C — HTTP (two terminals)
 
 ```bash
 # Terminal 1: start the server
-cd examples/hello-world-mcp
-uv run python server.py --http
+cd ~/git/mcphee/examples/hello-world-mcp
+uv run server.py --http
 # → Starting hello-world-mcp HTTP server on http://127.0.0.1:8000/mcp
 
 # Terminal 2: connect
@@ -75,11 +82,12 @@ mcphee connect --http http://127.0.0.1:8000/mcp
 ### What the connection banner shows
 
 ```
-╭─── mcphee ────────────────────────────────────────────────────╮
-│ Connected via stdio                                           │
-│ python .../server.py                                          │
-│ Type help for commands or exit to quit.                       │
-╰────────────────────────────────────────────────────────────────╯
+╭──────────────────────────── mcphee ─────────────────────────────╮
+│ Connected via stdio                                             │
+│ uv run --directory /home/you/git/mcphee/examples/hello-world-mcp│
+│ server.py                                                       │
+│ Type help for commands or exit to quit.                         │
+╰─────────────────────────────────────────────────────────────────╯
 ```
 
 Once you see this, you are at the `> ` prompt and ready to explore.
@@ -230,7 +238,7 @@ Result panel (formatted JSON):
 
 ```json
 {
-  "celsius": 100,
+  "celsius": 100.0,
   "fahrenheit": 212.0,
   "kelvin": 373.15
 }
@@ -255,8 +263,8 @@ Result: `-40` Celsius is the same in both scales — `fahrenheit` will also be `
 
 ```json
 {
-  "radius": 5,
-  "diameter": 10,
+  "radius": 5.0,
+  "diameter": 10.0,
   "area": 78.539816,
   "circumference": 31.415927
 }
@@ -271,10 +279,12 @@ Now try an invalid value:
 The server raises a `ValueError`. mcphee catches it and displays a red error panel:
 
 ```
-╭─ Error ──────────────────────────────────────────────────────╮
-│ radius must be positive, got -1                              │
-╰──────────────────────────────────────────────────────────────╯
+╭─ Error ──────────────────────────────────────────────────────────────────╮
+│ Error calling tool 'calculate_circle': radius must be positive, got -1.0 │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
+
+The value shows as `-1.0` because `radius` is a `float` parameter.
 
 > **What this shows:** Server-side validation errors surface cleanly. The REPL continues
 > normally — errors do not disconnect you.
@@ -355,10 +365,14 @@ Returns three copies (default `times=3`).
 {
   "char_count": 43,
   "word_count": 9,
-  "unique_words": 9,
-  "most_common": [["the", 2], ["quick", 1], ...]
+  "unique_words": 8,
+  "most_common": [["the", 2], ["quick", 1], ["brown", 1], ["fox", 1], ["jumps", 1]]
 }
 ```
+
+Words are lower-cased before counting, so "The" and "the" are the same word: nine words,
+eight unique. `most_common` lists the top five. (mcphee prints each pair on its own lines;
+it's compacted here.)
 
 Now add the optional flag to get character frequency:
 
@@ -561,7 +575,7 @@ Returns a prompt that constrains the summary to two sentences.
 > prompt summarize text="Un article en français" language=french
 ```
 
-> **What this shows:** `max_sentences` is an `Optional[int]` — it may be omitted entirely.
+> **What this shows:** `max_sentences` is an optional integer (`int | None`) — it may be omitted entirely.
 > When omitted, the server receives `None` and produces an unconstrained prompt.
 
 ---
@@ -623,11 +637,24 @@ mcphee defaults to Vi key bindings. The cursor shape changes between modes.
 | `/` | Search history forward |
 | `ciw` | Change inner word |
 
-To use Emacs bindings instead:
+### Emacs editing mode
+
+To use Emacs bindings instead, add `--emacs`:
 
 ```bash
-mcphee connect --emacs --stdio "python .../server.py"
+mcphee connect --emacs --stdio "uv run --directory $HOME/git/mcphee/examples/hello-world-mcp server.py"
 ```
+
+| Key | Action |
+|---|---|
+| `Ctrl+A` | Beginning of line |
+| `Ctrl+E` | End of line |
+| `Ctrl+F` | Forward one character |
+| `Ctrl+W` | Delete the previous word |
+| `Ctrl+K` | Delete to end of line |
+
+To make Emacs mode the default for a server, connect through a shell alias, for example
+`alias mcp-hello='mcphee connect --emacs --profile hello-world'`.
 
 ### Auto-suggestions
 
@@ -650,7 +677,7 @@ Rich panel output:
 
 ```
 ╭─ Result ────────────────────────────────────────────╮
-│ "Hello, Alice!"                                     │
+│ Hello, Alice!                                       │
 ╰─────────────────────────────────────────────────────╯
 ```
 
@@ -659,7 +686,7 @@ Rich panel output:
 JSON mode: ON
 
 > call greet name=Alice
-"Hello, Alice!"
+Hello, Alice!
 
 > #json
 JSON mode: OFF
@@ -669,22 +696,79 @@ JSON mode: OFF
 
 ---
 
-### Debug mode — see raw requests and responses
+### Payload mode — see raw requests and responses
+
+```
+> #payload on
+Payload mode: ON — request and response payloads will be shown
+
+> call add a=3 b=4
+╭──────────────── Request Payload ─────────────────╮
+│ {                                                │
+│   "jsonrpc": "2.0",                              │
+│   "method": "tools/call",                        │
+│   "params": {                                    │
+│     "name": "add",                               │
+│     "arguments": {                               │
+│       "a": 3,                                    │
+│       "b": 4                                     │
+│     }                                            │
+│   }                                              │
+│ }                                                │
+╰──────────────────────────────────────────────────╯
+╭──────────────── Response Payload ────────────────╮
+│ {                                                │
+│   "data": 7,                                     │
+│   "content": [                                   │
+│     {                                            │
+│       "type": "text",                            │
+│       "text": 7                                  │
+│     }                                            │
+│   ]                                              │
+│ }                                                │
+╰──────────────────────────────────────────────────╯
+╭───────────────────── Result ─────────────────────╮
+│ 7                                                │
+╰──────────────────────────────────────────────────╯
+
+> #payload off
+Payload mode: OFF
+```
+
+> Shows the JSON-RPC request sent for every `call`, `read`, and `prompt`, and the raw
+> response before mcphee formats it. Helpful when a tool call produces unexpected output.
+
+---
+
+### Debug mode and log level
 
 ```
 > #debug
-Debug mode: ON
+Debug mode: ON (log level: DEBUG)
 
 > call add a=3 b=4
 [debug] call_tool('add', {'a': 3, 'b': 4})
 ... result ...
 
 > #debug
-Debug mode: OFF
+Debug mode: OFF (log level: WARNING)
 ```
 
-> Shows the exact arguments being sent and the raw result returned. Helpful when a tool
-> call produces unexpected output.
+> Echoes the arguments mcphee is about to send and sets the log level to DEBUG. To see the
+> actual JSON-RPC messages, use `#payload on` instead.
+
+For finer control, set the log level directly:
+
+```
+> #loglevel
+Log level: WARNING
+
+> #loglevel info
+Log level set to INFO
+```
+
+Valid levels are `debug`, `info`, `warning`, `error` and `critical`. Choosing `debug`
+also turns debug mode on; any other level turns it off.
 
 ---
 
@@ -737,9 +821,9 @@ Errors in mcphee are surfaced as red panels. The REPL always continues after an 
 ```
 
 ```
-╭─ Error ──────────────────────────────────────────────╮
-│ radius must be positive, got -1                      │
-╰──────────────────────────────────────────────────────╯
+╭─ Error ──────────────────────────────────────────────────────────────────╮
+│ Error calling tool 'calculate_circle': radius must be positive, got -1.0 │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### Unknown tool
@@ -773,10 +857,10 @@ Errors in mcphee are surfaced as red panels. The REPL always continues after an 
 ```
 
 ```
-╭─ Error ──────────────────────────────────────────────╮
-│ Unknown algorithm 'blake2'. Choose from:             │
-│ ['md5', 'sha1', 'sha256', 'sha512']                  │
-╰──────────────────────────────────────────────────────╯
+╭─ Error ──────────────────────────────────────────────────────────────────╮
+│ Error calling tool 'hash_text': Unknown algorithm 'blake2'. Choose from: │
+│ ['md5', 'sha1', 'sha256', 'sha512']                                      │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 ---
@@ -794,7 +878,8 @@ or
 ```
 
 Both print `Disconnecting...` and return you to the shell. Ctrl+D (EOF) also exits cleanly.
-Ctrl+C during a call interrupts the wait and returns to the `> ` prompt without disconnecting.
+Ctrl+C at the prompt clears the current line. Ctrl+C while a call is running abandons that
+request, prints `Interrupted`, and returns to the `> ` prompt without disconnecting.
 
 ---
 
@@ -829,8 +914,8 @@ Ctrl+C during a call interrupts the wait and returns to the `> ` prompt without 
 |---|---|---|
 | `explain_tool` | `tool_name: str` | Single required string |
 | `brainstorm` | `topic: str, count: int = 5, style: str = "practical"` | Required + two optional |
-| `code_review` | `code: str, language: str, focus: str, strict: bool = False` | Four mixed args |
-| `summarize` | `text: str, max_sentences: Optional[int] = None, language: str` | Nullable int arg |
+| `code_review` | `code: str, language: str = "python", focus: str = "general", strict: bool = False` | Four mixed args |
+| `summarize` | `text: str, max_sentences: int \| None = None, language: str = "english"` | Nullable int arg |
 
 ### REPL commands
 
@@ -848,9 +933,11 @@ Ctrl+C during a call interrupts the wait and returns to the `> ` prompt without 
 | Command | Effect |
 |---|---|
 | `#json` | Toggle Rich panels ↔ raw JSON |
-| `#debug` | Toggle verbose request/response logging |
+| `#payload on\|off` | Show raw request/response payloads |
+| `#debug` | Toggle debug mode (DEBUG logging) |
+| `#loglevel [LEVEL]` | Show or set the log level |
 | `#export [path]` | Save last result to a JSON file |
-| `#timeout <s>` | Set request timeout in seconds |
+| `#timeout [s]` | Show or set request timeout in seconds |
 | `#refresh` | Re-fetch server capabilities, rebuild completions |
 | `#history [N]` | Show last N commands |
 | `#clear` | Clear the terminal |

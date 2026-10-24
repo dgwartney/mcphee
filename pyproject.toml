@@ -1,6 +1,6 @@
 [project]
 name = "mcphee"
-version = "0.1.0"
+version = "0.1.1"
 description = "Interactive MCP client CLI — connect to any MCP server via stdio, SSE, or HTTP"
 readme = "README.md"
 license = { text = "MIT" }

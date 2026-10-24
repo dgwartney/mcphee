@@ -96,7 +96,11 @@ class MCPConnection(ABC):
         if self._loop is None:
             raise RuntimeError("Not connected — call connect() first")
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        return future.result(timeout=self.timeout)
+        try:
+            return future.result(timeout=self.timeout)
+        except KeyboardInterrupt:
+            future.cancel()  # Ctrl+C: abandon the in-flight request, keep the session
+            raise
 
     # ------------------------------------------------------------------
     # MCP operations
@@ -178,9 +182,12 @@ class StdioMCPConnection(MCPConnection):
 
         cmd, *args = self._argv
 
-        if cmd in ("node", "npx", "npx.cmd", "bunx"):
-            # NodeStdioTransport(command, args=[...])
-            return Client(NodeStdioTransport(cmd, args=args))
+        if cmd == "node" and args:
+            # NodeStdioTransport(script_path, args=[extra_args], node_cmd=interpreter)
+            # argv pattern: node /path/to/server.js [extra...]
+            # (npx/bunx take a package name, not a script, so they fall through to generic)
+            script_path, *script_args = args
+            return Client(NodeStdioTransport(script_path, args=script_args, node_cmd=cmd))
 
         elif cmd in ("python", "python3") and args:
             # PythonStdioTransport(script_path, args=[extra_args], python_cmd=interpreter)

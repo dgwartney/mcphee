@@ -8,7 +8,7 @@ name: Publish
 #   * Manual run (workflow_dispatch) -> choose TestPyPI (default) or PyPI.
 #
 # One-time setup required on PyPI / TestPyPI before the first run — see
-# README.md ("Publishing to PyPI").
+# RELEASING.md.
 
 on:
   release:

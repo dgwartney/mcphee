@@ -222,6 +222,29 @@ def test_stdio_description():
     assert "npx" in conn.description
 
 
+@pytest.mark.parametrize("command", ["npx -y @mcp/server /tmp", "bunx @mcp/server"])
+def test_stdio_package_runner_uses_generic_transport(command):
+    # npx/bunx take a package name, not a script path, so they must not go
+    # through NodeStdioTransport (which requires an existing script file).
+    from fastmcp.client.transports import StdioTransport
+
+    cmd, *args = command.split()
+    transport = StdioMCPConnection(command)._make_client().transport
+    assert type(transport) is StdioTransport
+    assert transport.command == cmd
+    assert transport.args == args
+
+
+def test_stdio_node_script_uses_node_transport(tmp_path):
+    from fastmcp.client.transports import NodeStdioTransport
+
+    script = tmp_path / "server.js"
+    script.write_text("")
+    transport = StdioMCPConnection(f"node {script} --flag")._make_client().transport
+    assert isinstance(transport, NodeStdioTransport)
+    assert transport.args[-1] == "--flag"
+
+
 def test_sse_description():
     conn = SSEMCPConnection("http://host/sse")
     assert "sse" in conn.description

@@ -322,8 +322,11 @@ class MCPShell:
             if not line:
                 continue
 
-            if self._dispatch(line):
-                break  # exit/quit returned True
+            try:
+                if self._dispatch(line):
+                    break  # exit/quit returned True
+            except KeyboardInterrupt:
+                Display.warning("Interrupted")
 
     # ------------------------------------------------------------------
     # Dispatcher

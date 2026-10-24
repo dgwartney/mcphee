@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -212,7 +213,7 @@ class Display:
     @staticmethod
     def error(msg: str) -> None:
         """Print a red error panel."""
-        console.print(Panel(f"[red]{msg}[/red]", title="Error", border_style="red"))
+        console.print(Panel(f"[red]{escape(msg)}[/red]", title="Error", border_style="red"))
 
     @staticmethod
     def connected_banner(mode: str, target: str) -> None:
@@ -229,17 +230,17 @@ class Display:
     @staticmethod
     def info(msg: str) -> None:
         """Print a cyan informational message."""
-        console.print(f"[cyan]{msg}[/cyan]")
+        console.print(f"[cyan]{escape(msg)}[/cyan]")
 
     @staticmethod
     def success(msg: str) -> None:
         """Print a green success message."""
-        console.print(f"[green]{msg}[/green]")
+        console.print(f"[green]{escape(msg)}[/green]")
 
     @staticmethod
     def warning(msg: str) -> None:
         """Print a yellow warning message."""
-        console.print(f"[yellow]{msg}[/yellow]")
+        console.print(f"[yellow]{escape(msg)}[/yellow]")
 
     @staticmethod
     def help_table() -> None:
@@ -279,9 +280,17 @@ class Display:
             ("#history", "#history [N]", "Show last N commands (default 20)"),
             ("#export", "#export [path]", "Export last result to a JSON file"),
             ("#timeout", "#timeout [seconds]", "Show or set request timeout"),
-            ("#payload", "#payload on | off", "Show raw request and response payloads for every call"),
+            (
+                "#payload",
+                "#payload on | off",
+                "Show raw request and response payloads for every call",
+            ),
             ("#debug", "#debug", "Toggle debug mode (also sets log level DEBUG/WARNING)"),
-            ("#loglevel", "#loglevel [LEVEL]", "Show or set log level (debug/info/warning/error/critical)"),
+            (
+                "#loglevel",
+                "#loglevel [LEVEL]",
+                "Show or set log level (debug/info/warning/error/critical)",
+            ),
             ("#help", "#help", "Show this meta-command help"),
         ]
         for cmd, syntax, desc in rows:
@@ -297,8 +306,12 @@ class Display:
     def payload_request(method: str, params: dict) -> None:
         """Print the outgoing MCP request payload."""
         body = {"jsonrpc": "2.0", "method": method, "params": params}
-        syntax = Syntax(json.dumps(body, indent=2, default=str), "json", theme="monokai", word_wrap=True)
-        console.print(Panel(syntax, title="[bold yellow]Request Payload[/bold yellow]", border_style="yellow"))
+        syntax = Syntax(
+            json.dumps(body, indent=2, default=str), "json", theme="monokai", word_wrap=True
+        )
+        console.print(
+            Panel(syntax, title="[bold yellow]Request Payload[/bold yellow]", border_style="yellow")
+        )
 
     @staticmethod
     def payload_response(result: Any) -> None:
@@ -334,7 +347,9 @@ class Display:
             payload["messages"] = [
                 {
                     "role": getattr(m, "role", "?"),
-                    "content": getattr(getattr(m, "content", None), "text", str(getattr(m, "content", m))),
+                    "content": getattr(
+                        getattr(m, "content", None), "text", str(getattr(m, "content", m))
+                    ),
                 }
                 for m in (result.messages or [])
             ]
@@ -342,8 +357,12 @@ class Display:
         if not payload:
             payload = {"raw": str(result)}
 
-        syntax = Syntax(json.dumps(payload, indent=2, default=str), "json", theme="monokai", word_wrap=True)
-        console.print(Panel(syntax, title="[bold blue]Response Payload[/bold blue]", border_style="blue"))
+        syntax = Syntax(
+            json.dumps(payload, indent=2, default=str), "json", theme="monokai", word_wrap=True
+        )
+        console.print(
+            Panel(syntax, title="[bold blue]Response Payload[/bold blue]", border_style="blue")
+        )
 
     # ------------------------------------------------------------------
     # Private helpers

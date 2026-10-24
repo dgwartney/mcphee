@@ -19,11 +19,45 @@ and prompts in a rich interactive REPL.
 - **Persistent history** — across sessions, XDG-compliant location
 - **Named profiles** — save connection configs in `~/.config/mcphee/profiles.toml`
 - **Rich output** — syntax-highlighted JSON, tables, and panels; toggle to raw JSON with `#json`
-- **Meta-commands** — `#refresh`, `#export`, `#timeout`, `#debug`, and more
+- **Meta-commands** — `#refresh`, `#export`, `#timeout`, `#payload`, `#debug`, `#loglevel`, and more
 
 ---
 
 ## Installation
+
+### Prerequisite: install uv
+
+mcphee is installed with [uv](https://docs.astral.sh/uv/), Astral's Python package and tool manager. uv also
+downloads a suitable Python (3.11+) automatically if you don't have one, so you don't need to install Python first.
+
+macOS / Linux:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Or with a package manager: `brew install uv` (macOS) or `winget install --id=astral-sh.uv -e` (Windows).
+
+Then open a new terminal and check it works:
+
+```bash
+uv --version
+```
+
+`uv tool install` puts commands such as `mcphee` in `~/.local/bin` (Windows: `%USERPROFILE%\.local\bin`).
+If `mcphee` is "command not found" after installing, add that directory to your `PATH` with:
+
+```bash
+uv tool update-shell
+```
+
+and open a new terminal.
 
 ### Recommended: uv tool (isolated, no venv management)
 
@@ -128,8 +162,10 @@ Meta-commands begin with `#` and control the REPL session:
 | `#json` | `#json` | Toggle JSON vs Rich pretty output |
 | `#history` | `#history [N]` | Show last N commands (default 20) |
 | `#export` | `#export [path]` | Export last result to a JSON file |
-| `#timeout` | `#timeout <seconds>` | Set request timeout |
-| `#debug` | `#debug` | Toggle verbose debug output |
+| `#timeout` | `#timeout [seconds]` | Show or set request timeout |
+| `#payload` | `#payload on \| off` | Show raw request and response payloads for every call |
+| `#debug` | `#debug` | Toggle debug mode: echo outgoing arguments, set log level DEBUG/WARNING |
+| `#loglevel` | `#loglevel [LEVEL]` | Show or set log level (debug/info/warning/error/critical) |
 | `#help` | `#help` | Show meta-command reference |
 
 ---
@@ -189,36 +225,12 @@ The REPL uses **Vi mode** by default. Use `--emacs` to switch to Emacs mode.
 | Vi normal | `h l w b 0 $` | Move cursor |
 | Vi normal | `x dd u` | Delete / undo |
 | Vi normal | `/` | Search forward |
+| Emacs | `Ctrl+A` / `Ctrl+E` | Start / end of line |
+| Emacs | `Ctrl+F` | Forward one character |
+| Emacs | `Ctrl+W` / `Ctrl+K` | Delete previous word / delete to end of line |
 | Both | Up / Down arrows | History recall |
 | Both | `Ctrl+R` | Reverse history search |
 | Vi insert | `Esc` | Switch to normal mode |
-
----
-
-## Publishing to PyPI
-
-Releases are published by the `Publish` GitHub Actions workflow (`.github/workflows/publish.yml`) using
-PyPI Trusted Publishing (OIDC), so no API tokens are stored anywhere.
-
-One-time setup on <https://pypi.org> (and <https://test.pypi.org> for dry runs), under
-**Account → Publishing → Add a pending publisher**:
-
-| Field | Value |
-|---|---|
-| PyPI Project Name | `mcphee` |
-| Owner | `dgwartney` |
-| Repository name | `mcphee` |
-| Workflow name | `publish.yml` |
-| Environment name | `pypi` (use `testpypi` on TestPyPI) |
-
-To release:
-
-1. Bump `version` in `pyproject.toml` (PyPI never accepts the same version twice).
-2. Dry run: **Actions → Publish → Run workflow → target `testpypi`**, then install from TestPyPI:
-   `uv tool install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ mcphee`
-3. Publish: create a GitHub Release tagged `vX.Y.Z` — the workflow uploads to PyPI.
-
-To build locally without publishing: `uv build` (writes `dist/mcphee-*.whl` and `.tar.gz`).
 
 ---
 
