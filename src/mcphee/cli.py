@@ -9,7 +9,7 @@ import click
 from rich.logging import RichHandler
 from rich.table import Table
 
-from mcphee.connection import ConnectionFactory
+from mcphee.connection import ConnectionFactory, MCPConnection, StdioMCPConnection
 from mcphee.display import Display, console
 from mcphee.profiles import ProfileManager
 from mcphee.shell import MCPShell
@@ -21,6 +21,9 @@ logging.basicConfig(
     format="%(message)s",
     handlers=[RichHandler(console=console, show_path=False, rich_tracebacks=True)],
 )
+
+DEMO_MODULE = "mcphee.examples.hello_world"
+DEMO_COMMAND = "mcphee-hello-world (bundled)"
 
 # ------------------------------------------------------------------
 # Root group
@@ -47,6 +50,8 @@ def mcphee() -> None:
               help="HTTP + Server-Sent Events endpoint URL.")
 @click.option("--http", "http_url", metavar="URL", default=None,
               help="Streamable HTTP endpoint URL.")
+@click.option("--demo", "demo", is_flag=True, default=False,
+              help="Connect to the bundled hello-world example server (no setup needed).")
 @click.option("--profile", "-p", metavar="NAME", default=None,
               help="Load connection settings from a named profile (XDG config: profiles.toml).")
 @click.option("--header", "-H", metavar="KEY=VALUE", multiple=True,
@@ -61,6 +66,7 @@ def connect(
     stdio_cmd: str | None,
     sse_url: str | None,
     http_url: str | None,
+    demo: bool,
     profile: str | None,
     header: tuple[str, ...],
     json_mode: bool,
@@ -69,7 +75,7 @@ def connect(
 ) -> None:
     """Connect to an MCP server and start the interactive REPL.
 
-    Exactly one of --stdio, --sse, --http, or --profile must be provided.
+    Exactly one of --stdio, --sse, --http, --demo, or --profile must be provided.
 
     \b
     Examples:
@@ -77,17 +83,20 @@ def connect(
       mcphee connect --sse http://localhost:8080/sse --header x-api-key=secret
       mcphee connect --http http://localhost:8080/mcp
       mcphee connect --profile myserver
+      mcphee connect --demo
     """
     if timeout <= 0:
         raise click.BadParameter("Timeout must be positive.", param_hint="--timeout")
 
     # Validate mutually exclusive options
-    sources = [stdio_cmd, sse_url, http_url, profile]
+    sources = [stdio_cmd, sse_url, http_url, profile, True if demo else None]
     provided = [s for s in sources if s is not None]
     if len(provided) == 0:
-        raise click.UsageError("One of --stdio, --sse, --http, or --profile is required.")
+        raise click.UsageError("One of --stdio, --sse, --http, --demo, or --profile is required.")
     if len(provided) > 1:
-        raise click.UsageError("Only one of --stdio, --sse, --http, or --profile may be used.")
+        raise click.UsageError(
+            "Only one of --stdio, --sse, --http, --demo, or --profile may be used."
+        )
 
     # Parse headers
     headers: dict[str, str] = {}
@@ -104,6 +113,8 @@ def connect(
         mode = cfg["mode"]
         target = cfg.get("command") or cfg.get("url", "")
         headers = {**cfg.get("headers", {}), **headers}
+    elif demo:
+        mode, target = "stdio", DEMO_COMMAND
     elif stdio_cmd is not None:
         mode, target = "stdio", stdio_cmd
     elif sse_url is not None:
@@ -112,7 +123,13 @@ def connect(
         assert http_url is not None
         mode, target = "http", http_url
 
-    conn = ConnectionFactory.create(mode, target, headers=headers or None, timeout=timeout)
+    if demo:
+        # Launch with this interpreter (which has fastmcp): no PATH lookup, no shell parsing.
+        conn: MCPConnection = StdioMCPConnection(
+            command=target, timeout=timeout, argv=[sys.executable, "-m", DEMO_MODULE]
+        )
+    else:
+        conn = ConnectionFactory.create(mode, target, headers=headers or None, timeout=timeout)
 
     try:
         conn.connect()

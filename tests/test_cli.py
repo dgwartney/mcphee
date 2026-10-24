@@ -285,3 +285,25 @@ def test_profile_remove_not_found(runner, monkeypatch, tmp_path):
         mock_pm_cls.return_value = pm
         result = runner.invoke(mcphee, ["profile", "remove", "ghost"])
         assert result.exit_code != 0
+
+
+# ------------------------------------------------------------------
+# connect --demo (bundled hello-world server)
+# ------------------------------------------------------------------
+
+def test_connect_demo_launches_bundled_server(runner):
+    import sys
+
+    with patch("mcphee.cli.StdioMCPConnection") as mock_conn_cls, \
+         patch("mcphee.cli.MCPShell") as mock_shell_cls:
+        result = runner.invoke(mcphee, ["connect", "--demo"])
+    assert result.exit_code == 0
+    kwargs = mock_conn_cls.call_args.kwargs
+    assert kwargs["argv"] == [sys.executable, "-m", "mcphee.examples.hello_world"]
+    mock_shell_cls.return_value.run.assert_called_once()
+
+
+def test_connect_demo_conflicts_with_other_sources(runner):
+    result = runner.invoke(mcphee, ["connect", "--demo", "--http", "http://x/mcp"])
+    assert result.exit_code != 0
+    assert "--demo" in result.output

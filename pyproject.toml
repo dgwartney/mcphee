@@ -27,6 +27,7 @@ dependencies = [
 
 [project.scripts]
 mcphee = "mcphee.cli:mcphee"
+mcphee-hello-world = "mcphee.examples.hello_world:main"
 
 [project.urls]
 Homepage = "https://github.com/dgwartney/mcphee"

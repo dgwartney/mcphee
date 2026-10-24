@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The hello-world example server now ships inside the package as `mcphee.examples.hello_world`,
+  with a `mcphee-hello-world` command (`--http`, `--host`, `--port`) and `mcphee connect --demo`,
+  so the tutorial works from `uv tool install mcphee` alone (no git clone).
+
+### Removed
+
+- `examples/hello-world-mcp/` server, `pyproject.toml` and `uv.lock` (moved into the package).
+
 ## [0.1.1] - 2026-10-23
 
 ### Added
