@@ -299,7 +299,8 @@ def test_connect_demo_launches_bundled_server(runner):
         result = runner.invoke(mcphee, ["connect", "--demo"])
     assert result.exit_code == 0
     kwargs = mock_conn_cls.call_args.kwargs
-    assert kwargs["argv"] == [sys.executable, "-m", "mcphee.examples.hello_world"]
+    # -I: isolated mode, so a stray fastmcp.py or mcphee/ in the cwd is never imported
+    assert kwargs["argv"] == [sys.executable, "-I", "-m", "mcphee.examples.hello_world"]
     mock_shell_cls.return_value.run.assert_called_once()
 
 

@@ -64,7 +64,7 @@ def test_main_http_announces_and_passes_host_port(monkeypatch, capsys):
 
 def test_bundled_server_over_stdio_lists_tools():
     conn = StdioMCPConnection(
-        command="demo", argv=[sys.executable, "-m", "mcphee.examples.hello_world"]
+        command="demo", argv=[sys.executable, "-I", "-m", "mcphee.examples.hello_world"]
     )
     with conn:
         assert {t.name for t in conn.list_tools()} == EXPECTED_TOOLS

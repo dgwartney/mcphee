@@ -125,8 +125,9 @@ def connect(
 
     if demo:
         # Launch with this interpreter (which has fastmcp): no PATH lookup, no shell parsing.
+        # -I (isolated) keeps the cwd off sys.path so local files cannot shadow modules.
         conn: MCPConnection = StdioMCPConnection(
-            command=target, timeout=timeout, argv=[sys.executable, "-m", DEMO_MODULE]
+            command=target, timeout=timeout, argv=[sys.executable, "-I", "-m", DEMO_MODULE]
         )
     else:
         conn = ConnectionFactory.create(mode, target, headers=headers or None, timeout=timeout)
