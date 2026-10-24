@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README, TUTORIAL and example: documented the `#payload on|off` and `#loglevel [LEVEL]` meta-commands
 - `RELEASING.md` with the release process and Trusted Publishing configuration
 - `CLAUDE.md` with project guidance for AI coding assistants
+- README and TUTORIAL: Emacs key bindings
 
 ### Changed
 
@@ -22,11 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TUTORIAL: `#debug` is described accurately (argument echo and DEBUG logging); raw request and
   response payloads are shown by `#payload`
 - Release instructions moved out of the README into `RELEASING.md`
+- TUTORIAL and example README start the example server with `uv run --directory … server.py`;
+  `python server.py` failed on machines without `fastmcp` in the system Python
+- TUTORIAL: expected outputs updated to match a validated run on a fresh Linux machine
+- hello-world-mcp: stdio mode no longer prints the FastMCP banner, update notice or server
+  tracebacks into the mcphee terminal; `fastmcp` capped at `<4`; lockfile refreshed (the old
+  `cffi` pin had no Python 3.15 wheel, so `uv run` needed a C compiler on fresh machines)
 
 ### Fixed
 
 - `connect --stdio 'npx …'` / `'bunx …'` failed with `Script not found: …/npx`; package runners now
   use the generic stdio transport, and only `node <script.js>` uses the Node transport
+- Ctrl+C while a request is running now cancels it and returns to the prompt; previously it
+  exited mcphee
+- Messages containing square brackets lost text (`[debug]` prefixes, `[key=value ...]` in usage
+  errors) because they were parsed as Rich markup
+- hello-world-mcp: `prompt summarize … max_sentences=2` failed with a pydantic error
 - `mcphee.__version__` was hard-coded to `0.1.0`; it now reads the installed package version
 - CI: line-length lint errors in `display.py`; test coverage raised from 85% to 94%, above the 90% gate
 

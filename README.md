@@ -164,7 +164,7 @@ Meta-commands begin with `#` and control the REPL session:
 | `#export` | `#export [path]` | Export last result to a JSON file |
 | `#timeout` | `#timeout [seconds]` | Show or set request timeout |
 | `#payload` | `#payload on \| off` | Show raw request and response payloads for every call |
-| `#debug` | `#debug` | Toggle debug mode (also sets log level DEBUG/WARNING) |
+| `#debug` | `#debug` | Toggle debug mode: echo outgoing arguments, set log level DEBUG/WARNING |
 | `#loglevel` | `#loglevel [LEVEL]` | Show or set log level (debug/info/warning/error/critical) |
 | `#help` | `#help` | Show meta-command reference |
 
@@ -225,6 +225,9 @@ The REPL uses **Vi mode** by default. Use `--emacs` to switch to Emacs mode.
 | Vi normal | `h l w b 0 $` | Move cursor |
 | Vi normal | `x dd u` | Delete / undo |
 | Vi normal | `/` | Search forward |
+| Emacs | `Ctrl+A` / `Ctrl+E` | Start / end of line |
+| Emacs | `Ctrl+F` | Forward one character |
+| Emacs | `Ctrl+W` / `Ctrl+K` | Delete previous word / delete to end of line |
 | Both | Up / Down arrows | History recall |
 | Both | `Ctrl+R` | Reverse history search |
 | Vi insert | `Esc` | Switch to normal mode |
