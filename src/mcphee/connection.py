@@ -96,7 +96,11 @@ class MCPConnection(ABC):
         if self._loop is None:
             raise RuntimeError("Not connected — call connect() first")
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        return future.result(timeout=self.timeout)
+        try:
+            return future.result(timeout=self.timeout)
+        except KeyboardInterrupt:
+            future.cancel()  # Ctrl+C: abandon the in-flight request, keep the session
+            raise
 
     # ------------------------------------------------------------------
     # MCP operations

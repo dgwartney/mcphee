@@ -176,3 +176,30 @@ def test_python_dash_m_runs_cli():
     with patch("mcphee.cli.mcphee") as cli:
         runpy.run_module("mcphee", run_name="__main__")
     cli.assert_called_once_with()
+
+
+# ------------------------------------------------------------------
+# Ctrl+C during a request
+# ------------------------------------------------------------------
+
+
+def test_ctrl_c_during_command_returns_to_prompt(shell, capsys):
+    session = MagicMock()
+    session.prompt.side_effect = ["call slow", "#json", "exit"]
+    with (
+        patch("mcphee.shell.PromptSession", return_value=session),
+        patch.object(shell, "_cmd_call", side_effect=KeyboardInterrupt),
+    ):
+        shell.run()
+    assert shell._json_mode is True  # the REPL kept going after the interrupt
+    assert "Interrupted" in capsys.readouterr().out
+
+
+def test_ctrl_c_cancels_in_flight_request(mcp_connection):
+    future = MagicMock()
+    future.result.side_effect = KeyboardInterrupt
+    coro = MagicMock()
+    with patch("asyncio.run_coroutine_threadsafe", return_value=future):
+        with pytest.raises(KeyboardInterrupt):
+            mcp_connection._run(coro)
+    future.cancel.assert_called_once_with()
