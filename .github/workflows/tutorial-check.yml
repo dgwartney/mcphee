@@ -1,0 +1,41 @@
+name: Tutorial check
+
+# Walks TUTORIAL.md on a fresh Linux container (scripts/tutorial-check/README.md).
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "TUTORIAL.md"
+      - "src/mcphee/**"
+      - "pyproject.toml"
+      - "scripts/tutorial-check/**"
+      - ".github/workflows/tutorial-check.yml"
+  workflow_dispatch:
+    inputs:
+      pypi_version:
+        description: "Test this PyPI release instead of the checkout (e.g. 0.2.0; 'latest' for newest)"
+        required: false
+        default: ""
+
+jobs:
+  tutorial:
+    name: Walk TUTORIAL.md
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Run tutorial check
+        env:
+          PYPI_VERSION: ${{ inputs.pypi_version }}
+        run: |
+          if [ -z "$PYPI_VERSION" ]; then
+            scripts/tutorial-check/run.sh
+          elif [ "$PYPI_VERSION" = "latest" ]; then
+            scripts/tutorial-check/run.sh --pypi
+          else
+            scripts/tutorial-check/run.sh --pypi "$PYPI_VERSION"
+          fi

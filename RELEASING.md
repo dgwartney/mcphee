@@ -13,8 +13,13 @@ PyPI Trusted Publishing (OIDC), so no API tokens are stored anywhere.
    uv tool install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ mcphee
    ```
 
-3. Publish: create a GitHub Release tagged `vX.Y.Z` from `main`. The workflow uploads it to PyPI.
-4. Verify: `uv tool install --refresh mcphee && mcphee --version`.
+3. Check the tutorial on a fresh machine: `scripts/tutorial-check/run.sh` must report
+   `0 failed`. It needs Docker; see [scripts/tutorial-check/README.md](scripts/tutorial-check/README.md).
+   The Tutorial check workflow also runs it on pull requests.
+4. Publish: create a GitHub Release tagged `vX.Y.Z` from `main`. The workflow uploads it to PyPI.
+5. Verify: `uv tool install --refresh mcphee && mcphee --version`, then
+   `scripts/tutorial-check/run.sh --pypi X.Y.Z`. PyPI's index can take a few minutes to list a
+   new version; if uv still installs the old one, wait and retry.
 
 To build locally without publishing, run `uv build`. It writes `dist/mcphee-*.whl` and `dist/mcphee-*.tar.gz`.
 

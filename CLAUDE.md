@@ -49,5 +49,7 @@ uv run pytest --cov=mcphee --cov-report=term-missing --cov-fail-under=90
   the `mcp_connection` fixture runs against an in-memory FastMCP server.
 - A new meta-command needs a branch in `MCPShell._handle_meta`, a row in
   `Display.meta_help_table`, and entries in README.md (Meta-Command Reference) and TUTORIAL.md.
+- After changing TUTORIAL.md or `src/mcphee/examples/`, run `scripts/tutorial-check/run.sh` (Docker),
+  and update `EXPECT` in `scripts/tutorial-check/check.py` when an example's output changes.
 - The version lives only in `pyproject.toml`; `mcphee.__version__` reads it from package
   metadata. Release steps are in [RELEASING.md](RELEASING.md); record changes in CHANGELOG.md.
