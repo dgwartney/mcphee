@@ -1,6 +1,6 @@
 [project]
 name = "mcphee"
-version = "0.1.1"
+version = "0.2.0"
 description = "Interactive MCP client CLI — connect to any MCP server via stdio, SSE, or HTTP"
 readme = "README.md"
 license = { text = "MIT" }
@@ -35,7 +35,7 @@ Repository = "https://github.com/dgwartney/mcphee"
 Issues = "https://github.com/dgwartney/mcphee/issues"
 
 [build-system]
-requires = ["uv_build>=0.11.3,<0.13.0"]
+requires = ["uv_build>=0.11.3,<0.14.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
