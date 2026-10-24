@@ -167,11 +167,14 @@ class MCPConnection(ABC):
 class StdioMCPConnection(MCPConnection):
     """Connect to an MCP server via stdio (subprocess)."""
 
-    def __init__(self, command: str, timeout: float = 30.0) -> None:
+    def __init__(
+        self, command: str, timeout: float = 30.0, argv: list[str] | None = None
+    ) -> None:
         super().__init__(timeout)
         self.command = command
-        # Split into argv; shlex handles quoted args correctly
-        self._argv = shlex.split(command)
+        # Split into argv; shlex handles quoted args correctly. An explicit argv skips
+        # the split (needed for paths with backslashes or spaces, e.g. on Windows).
+        self._argv = list(argv) if argv else shlex.split(command)
 
     def _make_client(self) -> Client:
         from fastmcp.client.transports import (

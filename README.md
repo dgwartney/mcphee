@@ -69,7 +69,7 @@ uv tool install mcphee
 uv tool install git+https://github.com/dgwartney/mcphee
 
 # Specific tag or commit
-uv tool install "git+https://github.com/dgwartney/mcphee@v0.1.0"
+uv tool install "git+https://github.com/dgwartney/mcphee@v0.2.0"
 
 # From a local clone
 uv tool install .
@@ -90,6 +90,14 @@ pip install mcphee
 ---
 
 ## Quick Start
+
+Try it immediately with the bundled example server (no setup):
+
+```bash
+mcphee connect --demo
+```
+
+[TUTORIAL.md](TUTORIAL.md) walks through it step by step. To connect to your own servers:
 
 ```bash
 # Connect to a local stdio MCP server

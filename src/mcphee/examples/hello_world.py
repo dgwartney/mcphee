@@ -5,10 +5,11 @@ Demonstrates all three MCP primitives — tools, resources, and prompts —
 with a variety of argument types and return shapes. Designed to be used
 alongside the mcphee interactive CLI.
 
-Usage:
-    uv run python server.py            # stdio transport (default)
-    uv run python server.py --http     # Streamable HTTP on 127.0.0.1:8000/mcp
-    uv run python server.py --http --port 9000
+Usage (after `uv tool install mcphee`):
+    mcphee-hello-world                 # stdio transport (default)
+    mcphee-hello-world --http          # Streamable HTTP on 127.0.0.1:8000/mcp
+    mcphee-hello-world --http --port 9000
+    python -m mcphee.examples.hello_world   # same, from any interpreter with mcphee
 """
 
 from __future__ import annotations
@@ -369,7 +370,7 @@ TRANSPORTS
    sse     — server uses HTTP + Server-Sent Events (legacy, still supported)
 
 This hello-world-mcp server supports both stdio and HTTP.
-See README.md in the same directory for connection instructions.
+Run 'mcphee-hello-world --help' for its options.
 """
 
 
@@ -587,17 +588,19 @@ def summarize(
 # Entry point
 # ─────────────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
+    """Run the server: stdio by default, Streamable HTTP with --http."""
     parser = argparse.ArgumentParser(
+        prog="mcphee-hello-world",
         description="hello-world-mcp: Tutorial MCP server built with FastMCP",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  uv run python server.py                        stdio (default)
-  uv run python server.py --http                 HTTP on 127.0.0.1:8000/mcp
-  uv run python server.py --http --port 9000     custom port
-  uv run python server.py --http --host 0.0.0.0  bind all interfaces
-        """,
+  mcphee-hello-world                        stdio (default)
+  mcphee-hello-world --http                 HTTP on 127.0.0.1:8000/mcp
+  mcphee-hello-world --http --port 9000     custom port
+  mcphee-hello-world --http --host 0.0.0.0  bind all interfaces
+    """,
     )
     parser.add_argument(
         "--http",
@@ -615,7 +618,7 @@ Examples:
         default=8000,
         help="HTTP port (default: 8000, only used with --http)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.http:
         print(
@@ -631,3 +634,7 @@ Examples:
         # Quiet on stdio: the server's stderr shares mcphee's terminal, so skip the
         # banner and log only critical errors (mcphee still shows tool errors).
         mcp.run(transport="stdio", show_banner=False, log_level="CRITICAL")
+
+
+if __name__ == "__main__":
+    main()
