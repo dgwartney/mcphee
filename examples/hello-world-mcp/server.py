@@ -19,7 +19,6 @@ import hashlib
 import math
 import platform
 import sys
-from typing import Optional
 
 from fastmcp import FastMCP
 
@@ -560,13 +559,13 @@ def code_review(
 @mcp.prompt
 def summarize(
     text: str,
-    max_sentences: Optional[int] = None,
+    max_sentences: int | None = None,
     language: str = "english",
 ) -> str:
     """
     Generate a summarization prompt for a block of text.
 
-    Demonstrates: a prompt with an Optional[int] argument — FastMCP
+    Demonstrates: a prompt with an optional int argument (int | None) — FastMCP
     exposes this as a non-required prompt argument that may be omitted.
 
     Args:
@@ -629,4 +628,6 @@ Examples:
         )
         mcp.run(transport="http", host=args.host, port=args.port)
     else:
-        mcp.run(transport="stdio")
+        # Quiet on stdio: the server's stderr shares mcphee's terminal, so skip the
+        # banner and log only critical errors (mcphee still shows tool errors).
+        mcp.run(transport="stdio", show_banner=False, log_level="CRITICAL")

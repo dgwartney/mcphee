@@ -12,6 +12,8 @@ Use it to learn mcphee and to test any MCP client.
 - [uv](https://docs.astral.sh/uv/) installed — see [Install uv](../../README.md#prerequisite-install-uv)
 - Python 3.11+ (uv downloads it automatically if needed)
 - mcphee installed: `uv tool install mcphee`
+- This repo cloned (the server is not part of the `mcphee` package):
+  `git clone https://github.com/dgwartney/mcphee ~/git/mcphee`
 
 ---
 
@@ -21,15 +23,18 @@ Use it to learn mcphee and to test any MCP client.
 
 ```bash
 # mcphee spawns the server as a subprocess — no separate terminal needed
-mcphee connect --stdio 'python /path/to/examples/hello-world-mcp/server.py'
+mcphee connect --stdio "uv run --directory $HOME/git/mcphee/examples/hello-world-mcp server.py"
 ```
+
+`uv run` installs the server's dependencies on first use. Plain `python server.py` fails unless
+`fastmcp` is installed in that Python.
 
 ### HTTP transport (server runs separately)
 
 ```bash
 # Terminal 1: start the server
-cd examples/hello-world-mcp
-uv run python server.py --http
+cd ~/git/mcphee/examples/hello-world-mcp
+uv run server.py --http
 # → Starting hello-world-mcp HTTP server on http://127.0.0.1:8000/mcp
 
 # Terminal 2: connect with mcphee
@@ -45,7 +50,8 @@ Add these entries to `~/.config/mcphee/profiles.toml`:
 ```toml
 [profiles.hello-world]
 mode = "stdio"
-command = "python /Users/yourname/path/to/examples/hello-world-mcp/server.py"
+# Use the full path: ~ and $HOME are not expanded in profiles
+command = "uv run --directory /home/you/git/mcphee/examples/hello-world-mcp server.py"
 
 [profiles.hello-world-http]
 mode = "http"
@@ -176,7 +182,7 @@ Once connected, you'll see the REPL prompt `> `. Here's a guided walkthrough:
 > call add a=1 b=2
 > #payload off
 
-# Enable debug output (echoes arguments, DEBUG logging)
+# Enable debug output (echoes outgoing arguments, DEBUG log level)
 > #debug
 > call add a=1 b=2
 > #debug                    # toggle off
@@ -232,7 +238,7 @@ Once connected, you'll see the REPL prompt `> `. Here's a guided walkthrough:
 | `explain_tool` | `tool_name: str` | Single required string arg |
 | `brainstorm` | `topic: str, count: int = 5, style: str = "practical"` | Required + two optional args |
 | `code_review` | `code: str, language: str = "python", focus: str = "general", strict: bool = False` | Four mixed args including bool |
-| `summarize` | `text: str, max_sentences: Optional[int] = None, language: str = "english"` | Optional[int] (nullable arg) |
+| `summarize` | `text: str, max_sentences: int \| None = None, language: str = "english"` | Optional int (nullable arg) |
 
 ---
 
@@ -240,14 +246,14 @@ Once connected, you'll see the REPL prompt `> `. Here's a guided walkthrough:
 
 ```bash
 # stdio (default) — used when mcphee spawns this as a subprocess
-uv run python server.py
+uv run server.py
 
 # HTTP on default address
-uv run python server.py --http
+uv run server.py --http
 
 # Custom port
-uv run python server.py --http --port 9000
+uv run server.py --http --port 9000
 
 # Bind all interfaces (for remote access)
-uv run python server.py --http --host 0.0.0.0 --port 8080
+uv run server.py --http --host 0.0.0.0 --port 8080
 ```
