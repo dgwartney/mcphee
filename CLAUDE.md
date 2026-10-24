@@ -51,3 +51,18 @@ uv run pytest --cov=mcphee --cov-report=term-missing --cov-fail-under=90
   `Display.meta_help_table`, and entries in README.md (Meta-Command Reference) and TUTORIAL.md.
 - The version lives only in `pyproject.toml`; `mcphee.__version__` reads it from package
   metadata. Release steps are in [RELEASING.md](RELEASING.md); record changes in CHANGELOG.md.
+
+## Project Tracking
+
+Open work is tracked in the GitHub Project **MCP Seminar Readiness**:
+<https://github.com/users/dgwartney/projects/4>. It spans `dgwartney/mcphee`,
+`dgwartney/mcp-seminar` and `dgwartney/mcp-examples`.
+
+- Record new work as an issue in the repo that owns it, then add it to the project and set
+  **Status** (Todo / In Progress / Done):
+
+  ```bash
+  gh project item-add 4 --owner dgwartney --url <issue-url>
+  ```
+
+- Move items to Done when the work merges or ships.
