@@ -370,7 +370,7 @@ TRANSPORTS
    sse     — server uses HTTP + Server-Sent Events (legacy, still supported)
 
 This hello-world-mcp server supports both stdio and HTTP.
-See README.md in the same directory for connection instructions.
+Run 'mcphee-hello-world --help' for its options.
 """
 
 

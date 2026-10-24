@@ -38,6 +38,10 @@ uv run pytest --cov=mcphee --cov-report=term-missing --cov-fail-under=90
 - **src/mcphee/display.py** — `Display` static methods for all Rich output (tables, result
   panels, `#payload` request/response panels, meta-command help).
 - **src/mcphee/profiles.py** — `ProfileManager` for `$XDG_CONFIG_HOME/mcphee/profiles.toml`.
+- **src/mcphee/examples/hello_world.py** — the tutorial server, installed as the
+  `mcphee-hello-world` command and used by `mcphee connect --demo` (launched with
+  `sys.executable -I -m`). TUTORIAL.md quotes its output, so re-check the tutorial when you
+  change it. `examples/hello-world-mcp/` is only a pointer README.
 
 ## Conventions
 

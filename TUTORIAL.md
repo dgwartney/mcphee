@@ -4,7 +4,7 @@
 It gives you a REPL where you can discover and invoke a server's tools, read its resources,
 and render its prompts — all without writing a single line of code.
 
-This tutorial uses the `hello-world-mcp` example server that ships with the mcphee repository.
+This tutorial uses the `hello-world-mcp` example server that is installed with mcphee.
 The server intentionally covers every MCP primitive and every argument type so you can see
 exactly how mcphee handles each one.
 
@@ -25,13 +25,18 @@ By the end you will know how to:
 |---|---|
 | `uv` | macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh` — Windows and other options: see [README → Installation](README.md#prerequisite-install-uv) |
 | `mcphee` | `uv tool install mcphee` |
-| mcphee repo | `git clone https://github.com/dgwartney/mcphee ~/git/mcphee` |
 
-The `hello-world-mcp` server is not part of the installed `mcphee` package; it lives in the repo
-at `examples/hello-world-mcp/server.py`. The commands below assume you cloned to `~/git/mcphee`.
+That's all. Installing mcphee also installs the example server as the `mcphee-hello-world`
+command, right next to `mcphee`. There is nothing to clone and nothing else to install.
 
-The server is always started with `uv run`, which installs its dependencies (and a suitable
-Python, if needed) the first time. Expect the first connection to take a few seconds.
+Check both commands are on your `PATH`:
+
+```bash
+mcphee --version
+mcphee-hello-world --help
+```
+
+If either says "command not found", run `uv tool update-shell` and open a new terminal.
 
 ---
 
@@ -42,11 +47,14 @@ Python, if needed) the first time. Expect the first connection to take a few sec
 mcphee spawns the server as a subprocess. No second terminal is needed.
 
 ```bash
-mcphee connect --stdio "uv run --directory $HOME/git/mcphee/examples/hello-world-mcp server.py"
+mcphee connect --stdio mcphee-hello-world
 ```
 
-If you cloned somewhere else, change the path. Don't use `python server.py` here: that runs
-whichever Python is on your `PATH`, which usually doesn't have `fastmcp` installed.
+`--stdio` takes the command that starts the server; mcphee runs it and talks to it over
+stdin/stdout. Any MCP server you can start from a terminal connects the same way.
+
+Shortcut: `mcphee connect --demo` starts the same bundled server without looking it up on your
+`PATH`.
 
 ### Option B — saved profile
 
@@ -61,33 +69,32 @@ To create the profile if it is missing:
 ```bash
 mcphee profile add hello-world
 # Transport mode (stdio, sse, http) [http]: stdio
-# Shell command: uv run --directory /home/you/git/mcphee/examples/hello-world-mcp server.py
+# Shell command: mcphee-hello-world
 # Add a header? [y/N]: N
 ```
-
-Type the full path: `~` and `$HOME` are not expanded inside a saved profile.
 
 ### Option C — HTTP (two terminals)
 
 ```bash
 # Terminal 1: start the server
-cd ~/git/mcphee/examples/hello-world-mcp
-uv run server.py --http
+mcphee-hello-world --http
 # → Starting hello-world-mcp HTTP server on http://127.0.0.1:8000/mcp
 
 # Terminal 2: connect
 mcphee connect --http http://127.0.0.1:8000/mcp
 ```
 
+Use `--port` (and `--host`) to serve somewhere else, for example
+`mcphee-hello-world --http --port 9000`. Press Ctrl+C in Terminal 1 to stop the server.
+
 ### What the connection banner shows
 
 ```
-╭──────────────────────────── mcphee ─────────────────────────────╮
-│ Connected via stdio                                             │
-│ uv run --directory /home/you/git/mcphee/examples/hello-world-mcp│
-│ server.py                                                       │
-│ Type help for commands or exit to quit.                         │
-╰─────────────────────────────────────────────────────────────────╯
+╭──────────────────── mcphee ─────────────────────╮
+│ Connected via stdio                             │
+│ mcphee-hello-world                              │
+│ Type help for commands or exit to quit.         │
+╰─────────────────────────────────────────────────╯
 ```
 
 Once you see this, you are at the `> ` prompt and ready to explore.
@@ -642,7 +649,7 @@ mcphee defaults to Vi key bindings. The cursor shape changes between modes.
 To use Emacs bindings instead, add `--emacs`:
 
 ```bash
-mcphee connect --emacs --stdio "uv run --directory $HOME/git/mcphee/examples/hello-world-mcp server.py"
+mcphee connect --emacs --stdio mcphee-hello-world
 ```
 
 | Key | Action |
