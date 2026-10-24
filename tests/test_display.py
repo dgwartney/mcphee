@@ -344,3 +344,15 @@ def test_to_json_str_json_string():
 def test_to_json_str_plain_string():
     out = _to_json_str("hello")
     assert out == "hello"
+
+
+# ------------------------------------------------------------------
+# Message helpers print text literally (no Rich markup injection)
+# ------------------------------------------------------------------
+
+@pytest.mark.parametrize("helper", ["info", "success", "warning", "error"])
+def test_message_helpers_keep_square_brackets(helper, capsys):
+    getattr(Display, helper)("[debug] call <tool_name> [key=value ...]")
+    out = capsys.readouterr().out
+    assert "[debug]" in out
+    assert "[key=value ...]" in out

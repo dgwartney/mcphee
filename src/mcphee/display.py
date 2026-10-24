@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -212,7 +213,7 @@ class Display:
     @staticmethod
     def error(msg: str) -> None:
         """Print a red error panel."""
-        console.print(Panel(f"[red]{msg}[/red]", title="Error", border_style="red"))
+        console.print(Panel(f"[red]{escape(msg)}[/red]", title="Error", border_style="red"))
 
     @staticmethod
     def connected_banner(mode: str, target: str) -> None:
@@ -229,17 +230,17 @@ class Display:
     @staticmethod
     def info(msg: str) -> None:
         """Print a cyan informational message."""
-        console.print(f"[cyan]{msg}[/cyan]")
+        console.print(f"[cyan]{escape(msg)}[/cyan]")
 
     @staticmethod
     def success(msg: str) -> None:
         """Print a green success message."""
-        console.print(f"[green]{msg}[/green]")
+        console.print(f"[green]{escape(msg)}[/green]")
 
     @staticmethod
     def warning(msg: str) -> None:
         """Print a yellow warning message."""
-        console.print(f"[yellow]{msg}[/yellow]")
+        console.print(f"[yellow]{escape(msg)}[/yellow]")
 
     @staticmethod
     def help_table() -> None:
